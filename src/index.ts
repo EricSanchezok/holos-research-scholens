@@ -308,6 +308,7 @@ export default definePlugin({
     monitorJournal,
     monitorActiveRun,
     monitorBrief,
+    monitorCheckpointSummary,
     workbenchPanel({
       id: "monitor",
       label: "Research Monitor",
