@@ -62,7 +62,7 @@ export const ResearchIndex = z.object({
   phaseRuns: z.array(PhaseRunIndexEntry).default([]),
   diagnoses: z.array(z.object({ file: z.string(), updatedAt: z.string().optional() })).default([]),
   journalNotes: z.array(z.object({ file: z.string(), updatedAt: z.string().optional() })).default([]),
-  /** File manifests for auxiliary directories that need enumeration (positioning, rqg, literature/*). */
+  /** File manifests for auxiliary directories that need enumeration (positioning, rqg, diagnoses). */
   files: z.record(z.string(), z.array(z.string()).default([])).default({}),
   updatedAt: z.string(),
 });
@@ -83,7 +83,7 @@ const KIND_DIR: Record<EntityKind, string> = {
 const DIR_KIND = Object.fromEntries(Object.entries(KIND_DIR).map(([k, d]) => [d, k])) as Record<string, EntityKind>;
 
 /** Directories that are enumerated as "auxiliary files" (not first-class entities). */
-const AUX_DIRS = ["positioning", "rqg", "diagnoses", "literature", "literature/by-topic", "literature/papers"];
+const AUX_DIRS = ["positioning", "rqg", "diagnoses"];
 
 const indexMutex = getMutex("index");
 
@@ -214,11 +214,9 @@ function bucketFor(
   if (dir === "phase_runs") return { key: "phaseRuns" };
   if (dir === "diagnoses") return { key: "diagnoses" };
   if (dir === "journal") return { key: "journalNotes" };
-  // Match the longest AUX_DIRS prefix so nested buckets (literature/papers,
-  // literature/by-topic) register under their full relative-path bucket
-  // instead of the top-level dir. Without this, files written under
-  // literature/papers/x.yaml land in files["literature"] while
-  // listIndexedYaml("literature/papers") reads files["literature/papers"].
+  // Match the longest AUX_DIRS prefix so nested auxiliary directories
+  // register under their full relative-path bucket instead of the top-level
+  // dir.
   const dirPath = parts.slice(0, -1).join("/");
   const matched = AUX_DIRS.filter((a) => dirPath === a || dirPath.startsWith(`${a}/`)).sort(
     (a, b) => b.length - a.length,

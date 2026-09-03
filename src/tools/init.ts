@@ -94,7 +94,7 @@ Thumbs.db
 
 const DESCRIPTION = `Initialize a research project in the current scope, or load an existing one.
 
-Creates the \`.research/\` directory with all subdirectories (ideas, plans, experiments, claims, exhibits, papers, submissions, literature), state.yaml, timeline.jsonl, ASSETS.md, and literature stubs. Also generates AGENTS.md at the project root (auto-loaded every session for behavioral rules and state). Auto-appends a research.init event to the timeline.
+Creates the \`.research/\` directory with all subdirectories (ideas, plans, experiments, claims, exhibits, manuscripts, submissions, phase_runs, journal, snapshots, positioning, code_artifacts, rqg, compose, diagnoses, checkpoint_briefs), state.yaml, timeline.jsonl, and ASSETS.md. Also generates AGENTS.md at the project root (auto-loaded every session for behavioral rules and state). Auto-appends a research.init event to the timeline.
 
 If \`.research/\` already exists (state.yaml present), returns the current state without overwriting — use this to reload context at the start of any research session.
 
@@ -200,9 +200,6 @@ export const researchInit = tool({
           "exhibits",
           "manuscripts",
           "submissions",
-          "literature",
-          "literature/by-topic",
-          "literature/papers",
           "phase_runs",
           "journal",
           "snapshots",
@@ -301,17 +298,6 @@ export const researchInit = tool({
           "",
         ].join("\n");
         await ResearchFS.writeMd(ResearchFS.resolve("ASSETS.md"), assetsMd);
-
-        await ResearchFS.writeMd(
-          ResearchFS.resolve("literature/survey.md"),
-          "# Literature Survey\n\n(placeholder — will be populated by idea-explore skill)\n",
-        );
-
-        await Bun.write(ResearchFS.resolve("literature/references.bib"), "");
-
-        await ResearchFS.writeYaml(ResearchFS.resolve("literature/gap_map.yaml"), { gaps: [] });
-        await Bun.write(ResearchFS.resolve("literature/edges.jsonl"), "");
-        await Bun.write(ResearchFS.resolve("literature/log.jsonl"), "");
 
         const projectRoot = scopeDir();
 
@@ -440,7 +426,6 @@ export const researchInit = tool({
           "  .research/exhibits/",
           "  .research/manuscripts/",
           "  .research/submissions/",
-          "  .research/literature/",
           "  .research/scripts/ (stats.py, plot.py, paper_check.sh)",
           "  AGENTS.md (auto-loaded every session — behavioral rules + state)",
           "",
@@ -449,7 +434,7 @@ export const researchInit = tool({
           `pyproject.toml: ${pyprojectExists ? "already existed" : "created (use uv sync to install deps)"}`,
           "",
           "⚠️  FILE RULES — All research artifacts MUST go under .research/:",
-          "  Survey & literature → .research/literature/ (use research_wiki tool)",
+          "  Survey & literature → Scholens MCP project + docs/surveys/ (see lit-knowledge skill)",
           "  Ideas → .research/ideas/ (use research_idea tool)",
           "  Plans → .research/plans/ (use research_plan tool)",
           "  Experiments → .research/experiments/ (use research_experiment tool)",

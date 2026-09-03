@@ -20,7 +20,7 @@ Provides aggregated views of the research workflow, entities, timeline, journal,
 
 - **action="entities"**: Returns entity summary — counts and status breakdowns for all 7 entity types (ideas, plans, experiments, claims, exhibits, papers, submissions), plus current focus refs.
 
-- **action="timeline"**: Returns recent timeline events (default last 20). Use limit param to adjust count, type param to filter by event type (e.g. "idea.created", "wiki.paper_ingested"), since param for ISO timestamp lower bound, or refs param to filter by entity IDs (comma-separated).
+- **action="timeline"**: Returns recent timeline events (default last 20). Use limit param to adjust count, type param to filter by event type (e.g. "idea.created", "research.init"), since param for ISO timestamp lower bound, or refs param to filter by entity IDs (comma-separated).
 
 - **action="journal"**: Returns recent journal notes (default last 20). Use limit param to adjust.
 
@@ -41,9 +41,7 @@ export const researchMonitor = tool({
     type: z
       .string()
       .optional()
-      .describe(
-        "Filter timeline by event type (e.g. 'idea.created', 'wiki.paper_ingested'). Only for action='timeline'.",
-      ),
+      .describe("Filter timeline by event type (e.g. 'idea.created', 'research.init'). Only for action='timeline'."),
     since: z.string().optional().describe("ISO timestamp lower bound for timeline events. Only for action='timeline'."),
     refs: z
       .string()

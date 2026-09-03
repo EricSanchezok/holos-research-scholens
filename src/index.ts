@@ -39,7 +39,6 @@ import { researchPlan } from "./tools/plan";
 import { researchState } from "./tools/state";
 import { researchSubmission } from "./tools/submission";
 import { researchTimeline } from "./tools/timeline";
-import { researchWiki } from "./tools/wiki";
 
 /**
  * API4 adapter for the baseline API3 tool definitions (`args` + `execute`).
@@ -58,7 +57,6 @@ const MUTATING_TOOL_IDS = new Set([
   "research_exhibit",
   "research_paper",
   "research_submission",
-  "research_wiki",
   "research_timeline",
   "research_journal",
   "research_checkpoint_brief",
@@ -115,7 +113,6 @@ const toolContributions = [
   adaptTool("research_exhibit", researchExhibit),
   adaptTool("research_paper", researchPaper),
   adaptTool("research_submission", researchSubmission),
-  adaptTool("research_wiki", researchWiki),
   adaptTool("research_timeline", researchTimeline),
   adaptTool("research_monitor", researchMonitor),
   adaptTool("research_journal", researchJournal),

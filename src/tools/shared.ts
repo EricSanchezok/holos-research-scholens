@@ -94,14 +94,6 @@ function schemaHint(filePath: string): string {
     return `Required fields for submission YAML:
   id: string (e.g. "sub_001"), title: string, status: one of [preparing, submitted, under_review, rebuttal, revision_requested, resubmitted, accepted, rejected, closed], created: string (ISO date)`;
 
-  if (base === "gap_map.yaml")
-    return `Required structure for gap_map.yaml:
-  gaps: array of {id: string, description: string, status: one of [open, partially_addressed, closed], created: string}`;
-
-  if (dir === "papers" && base.endsWith(".yaml"))
-    return `Required fields for literature paper YAML:
-  slug: string, title: string, created: string, updated: string, relevance: one of [core, related, peripheral]`;
-
   return "Read other YAML files of the same type in the same directory to see the expected structure.";
 }
 
