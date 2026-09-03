@@ -123,7 +123,10 @@ Prefer `search_scholens_knowledge` for semantic questions across the project (pa
 ### Annotate & Discuss
 
 ```
-mcp__scholens__list_annotation_threads(document_id="<uuid>", audience={kind: "project", project_id: "<uuid>"})
+# NOTE: list_annotation_threads takes audience as a string plus a separate
+# project_id (verified against the live server), unlike create_annotation_thread
+# which takes the audience object:
+mcp__scholens__list_annotation_threads(document_id="<uuid>", audience="project", project_id="<uuid>", status="open")
 mcp__scholens__create_annotation_thread(document_id="<uuid>", quote_text="...", position={...}, audience={kind: "project", project_id: "<uuid>"}, initial_comment="...")
 mcp__scholens__create_annotation_comment(thread_id="<uuid>", content="...")
 ```
