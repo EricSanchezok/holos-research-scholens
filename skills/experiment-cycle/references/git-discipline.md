@@ -45,7 +45,6 @@ The `.gitignore` is designed around one principle: **track the research control 
   *.reviews.jsonl              ← Review history
   *.review.*.md                ← Review content
   docs/surveys/                ← Literature surveys (plain markdown)
-  docs/papers/                 ← Paper knowledge cards (plain markdown)
   scripts/                     ← Bundled utility scripts
 
 code/                          ← All experiment source code

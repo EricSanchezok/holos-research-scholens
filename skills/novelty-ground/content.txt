@@ -49,10 +49,10 @@ Tool contract:
 - Retry once with `strength: "standard"` and a narrower query.
 - If still failing, fall back to `websearch`/`webfetch` on `https://arxiv.org/abs/...` or the arXiv search tool — never block the pipeline on a single tool.
 
-**Paper Card contract** (for every closest work): create `docs/papers/{slug}.md` (slug = short title key) as the knowledge card; then APPEND/EDIT:
-- `## anchor_relevance` — where this paper sits relative to the idea (`closest work` / `foundation` / `competing mechanism`).
-- `## transfer` — could the method/idea transfer to our direction? how, and what would BLOCK it? (one line if no clear transfer).
-- `## evidence` — `html | full_text | partial | abstract_only`.
+**Paper notes** (for every closest work): after ingesting the paper into the Scholens project, record the note as a Scholens annotation thread on the document (`mcp__scholens__create_annotation_thread`, initial_comment = the note) or in `docs/gaps.md` / `docs/surveys/`. Never create local paper files. The note captures:
+- `anchor_relevance` — where this paper sits relative to the idea (`closest work` / `foundation` / `competing mechanism`).
+- `transfer` — could the method/idea transfer to our direction? how, and what would BLOCK it? (one line if no clear transfer).
+- `evidence` — `html | full_text | partial | abstract_only`.
 Ground every claim in the paper; never fabricate numbers/methods/results.
 
 ---
@@ -80,7 +80,7 @@ Before beginning any work in this phase:
 
 1. **Load core state**: `research_state(action="read")`
 2. **Load idea**: Read the selected idea's `.yaml` and `.md`
-3. **Load literature**: query the Scholens project (`search_scholens_knowledge` + `list_project_papers`) and read `docs/surveys/` + `docs/papers/`
+3. **Load literature**: query the Scholens project (`search_scholens_knowledge` + `list_project_papers`), read paper annotations (`list_annotation_threads`), and read `docs/surveys/` + `docs/gaps.md`
 4. **Record literature refs**: Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 5. **Drift check**: Verify selected idea still addresses `anchor`
 
@@ -100,7 +100,7 @@ research_state(action="brief", context_refresh={trigger: "session_resume", loade
 
 - The selected idea has a stable contribution statement and positioning
 - The StorySpine has been grounded with: grounded_angle, closest_work_positioning, expected_main_claims
-- `docs/papers/` cards and `docs/gaps.md` record how the idea relates to closest works and gaps
+- Scholens annotations and `docs/gaps.md` record how the idea relates to closest works and gaps
 - The idea is ready for method design (or has been rolled back to explore)
 
 ---
@@ -122,7 +122,7 @@ Read the selected idea's core insight, novelty breakdown, and feasibility.
 ```
 Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
 ```
-Read `docs/surveys/survey.md` (compressed landscape) and relevant `docs/papers/{slug}.md` knowledge cards.
+Read `docs/surveys/survey.md` (compressed landscape) and the bound project's paper annotations (`list_annotation_threads` on the relevant documents).
 
 ### 0.4 Read the anchor
 The `anchor` field is the user's research direction. All novelty assessment is relative to this.
@@ -147,8 +147,8 @@ task(subagent_type="scholar", background=true):
    last 3 months (date_from) to catch concurrent pre-prints.
    For each candidate: arXiv id, title, one-line method, SPECIFIC overlap with our
    idea, date, venue. For the 2-3 most relevant: call
-   ingest the paper into the Scholens project (mcp__scholens__ingest_paper) and build a Paper Card
-   (anchor_relevance/transfer/evidence sections) in docs/papers/{slug}.md.
+   ingest the paper into the Scholens project (mcp__scholens__ingest_paper) and record a paper note
+   (anchor_relevance/transfer/evidence) as a Scholens annotation thread on the document.
    Return: ranked closest-work shortlist with concrete overlap analysis."
 
 task(subagent_type="scholar", background=true):
@@ -158,7 +158,7 @@ task(subagent_type="scholar", background=true):
    Use mcp__scholight__search_papers with 3-4 queries built from the mechanism's core
    primitives (not the surface task), strength='thorough', limit=10 each.
    For each candidate: arXiv id, title, mechanism, domain, how it relates to our
-   mechanism. For the 2-3 most relevant: ingest + build a Paper Card.
+   mechanism. For the 2-3 most relevant: ingest + record a paper note (Scholens annotation thread).
    Return: ranked mechanism-overlap shortlist."
 ```
 
@@ -172,7 +172,7 @@ Identify the **2-3** most directly related papers. For each:
 ### 1.3 Ingest findings
 
 Ingest any missed papers into the Scholens project via `mcp__scholens__ingest_paper`.
-Record relationship notes (extends / contradicts / addresses_gap) in the relevant `docs/papers/{slug}.md` card and `docs/gaps.md`.
+Record relationship notes (extends / contradicts / addresses_gap) in the idea .md notes, as Scholens annotation comments on the documents, and in `docs/gaps.md`.
 
 ---
 
@@ -249,11 +249,11 @@ task(subagent_type="scholar", background=true):
       2025-2026 work making a similar claim or using a similar mechanism — 3-4 queries.
    2. Add a concurrent-work query restricted to the last 3 months (date_from).
    3. Verify each 'differs from' statement against the actual paper (read the closest
-      works' Paper Cards or full text via mcp__scholight__extract_url).
+      works' Scholens annotations or full text via mcp__scholight__extract_url).
    4. Is the contribution type classification correct?
 
    Return: per-claim novelty verdict (NOVEL / PARTIAL / SCOOPED) + corrections.
-   For important papers: ingest into Scholens + build a Paper Card in docs/papers/.
+   For important papers: ingest into Scholens + record a paper note (Scholens annotation thread).
    For minor papers: return title/arxiv/venue as text."
 ```
 
@@ -324,7 +324,7 @@ research_idea(action="update", id="idea_XXX", status="grounding",
 ### 5.3 Record literature relationships
 
 ```
-Append to the idea notes / `docs/papers/<slug>.md` card:
+Append to the idea .md notes / the paper's Scholens annotation thread:
   - relationship: extends|contradicts — <evidence>
   - addresses gap G0X from docs/gaps.md — <evidence>
 ```
@@ -407,8 +407,8 @@ research_state(action="advance", target_phase="design",
 ### Rollback Cleanup
 
 When rolling back from ground to explore:
-- Relationship notes / paper cards created for the failed grounded idea should be kept (they document the exploration path)
-- Append a dated note to the idea .md: "Grounding failed — contribution collapsed. Retained for reference." and keep the paper card in docs/papers/ as a negative result.
+- Relationship notes / paper annotations created for the failed grounded idea should be kept (they document the exploration path)
+- Append a dated note to the idea .md: "Grounding failed — contribution collapsed. Retained for reference." and keep any Scholens annotation / survey note as a negative result.
 - Do NOT delete story spine files — they are valuable exploration artifacts
 
 ---

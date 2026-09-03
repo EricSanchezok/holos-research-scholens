@@ -581,7 +581,7 @@ context_refresh:
       diagnosis: experiments/exp_batch_003.diagnosis.yaml
   used_wiki_refs:
     - scholens:doc_<document_id>      # 字段名保留为上游兼容；值为 Scholens document id
-    - docs/papers/smith_2026.md       # 或本地 paper card 路径
+    - scholens:thread_<id>            # 论文笔记 = Scholens annotation thread
   checked_skill_rules:
     - "Do not pivot to design before L1-L6 diagnosis."
     - "Do not promote strong claim without RQG pass."

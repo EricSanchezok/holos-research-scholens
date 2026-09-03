@@ -117,7 +117,7 @@ Before beginning any work in this phase:
    ```
    Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
    ```
-   - Read relevant `docs/papers/{slug}.md` knowledge cards + `docs/surveys/*.md` for related work
+   - Read the bound project's paper annotations (`list_annotation_threads`) + `docs/surveys/*.md` for related work
    - Note literature relationships recorded in the cards and `docs/gaps.md`
 
 4. **Record literature refs**:

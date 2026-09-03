@@ -19,11 +19,11 @@ This checklist is the canonical audit reference. Paper-audit skill walks through
 ## Dimension 2: Citation Accuracy
 
 - [ ] Every `\cite` entry exists in `references.bib`
-- [ ] Every cited paper exists in reality (verify via scholar/web if not in wiki)
+- [ ] Every cited paper exists in reality (verify via the bound Scholens project — `mcp__scholens__search_scholens_knowledge` / `get_paper_citation` — or scholar/web)
 - [ ] Characterization of each cited paper matches what the paper actually says
 - [ ] No results attributed to the wrong paper
 - [ ] No characterization stronger than the cited paper's own claims
-- [ ] Related work covers the 5 most relevant papers (check against wiki `relevance="core"`)
+- [ ] Related work covers the 5 most relevant papers (check against the bound Scholens project's papers and `docs/gaps.md` + `docs/surveys/`)
 - [ ] Recent work (last 6 months) is not missing
 - [ ] Self-citations are proportionate and not disguised during anonymous review
 

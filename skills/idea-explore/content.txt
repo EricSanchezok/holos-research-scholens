@@ -88,20 +88,30 @@ File conventions for this project:
 - Return all text findings in your response — the main agent writes them to `docs/surveys/`.
 - For important papers (core relevance):
   1. Ingest into the bound Scholens project: `mcp__scholens__ingest_paper(source={kind: "arxiv", arxiv_id: "..."}, project_id="<from docs/scholens-project.md>")` (or doi/url)
-  2. Build a Paper Card (see contract below) in `docs/papers/{slug}.md`
+  2. Record paper notes in Scholens (annotation thread on the paper) or in the survey (see § Paper notes below)
 - For minor papers: return title/arxiv/venue as text, main agent decides whether to ingest.
 - Use mcp__scholight__search_papers for discovery; extract full text via mcp__scholight__extract_url or arxiv_download.
 ```
 
-### Paper Card contract (for every core paper)
+### Paper notes (for every core paper)
 
-Create `docs/papers/{slug}.md` as the Paper Card (slug = short title key). Then APPEND/EDIT the following sections (never overwrite evidence already present — cards are append-only across stages):
+Per-paper notes live **in Scholens, not in local files**. After ingesting a paper, record the note as a Scholens annotation thread on the document, or fold it into the relevant `docs/surveys/` artifact. There is no per-paper local file store.
 
-- `## anchor_relevance` — why this paper matters to the anchor; where it sits in the field structure (`closest work` / `foundation` / `competing mechanism`).
-- `## transfer` — could this method/idea transfer to the anchor's direction? how, and what would BLOCK it? If no clear transfer, say so in one line.
-- `## evidence` — one of: `html` (arXiv HTML read) | `full_text` (PDF text) | `partial` | `abstract_only`.
+```
+mcp__scholens__create_annotation_thread(
+  document_id="<scholens doc id>",
+  quote_text="<exact passage from the paper>",
+  position={...},                                    # anchor for the exact quote
+  audience={kind: "project", project_id: "<from docs/scholens-project.md>"},
+  initial_comment="<the paper note>")
+```
 
-Rules: ground every claim in the paper; never fabricate numbers/methods/results; report an honest evidence level; keep it compact.
+If a thread already exists for the paper, add the note with `mcp__scholens__create_annotation_comment`. If no passage can be anchored, write the note as a dated section in the relevant `docs/surveys/` artifact instead — never a paper file store.
+
+The note captures (keep it compact; ground every claim; never fabricate numbers/methods/results; report an honest evidence level):
+- `anchor_relevance` — why this paper matters to the anchor; where it sits in the field structure (`closest work` / `foundation` / `competing mechanism`).
+- `transfer` — could this method/idea transfer to the anchor's direction? how, and what would BLOCK it? If no clear transfer, say so in one line.
+- `evidence` — one of: `html` (arXiv HTML read) | `full_text` (PDF text) | `partial` | `abstract_only`.
 
 ### When dispatching scout
 
@@ -120,8 +130,8 @@ dagwrite({ nodes: [
   { id: "anchor",     content: "Freeze problem anchor, clarify with user",       status: "pending", deps: [] },
   { id: "survey",     content: "Four parallel scouts (method/survey/venue/industry)", status: "pending", deps: ["anchor"] },
   { id: "merge",      content: "Landscape merge from 4 scout artifacts",         status: "pending", deps: ["survey"] },
-  { id: "read_core",  content: "Core paper read + Paper Cards (fan-out)",        status: "pending", deps: ["merge"] },
-  { id: "wonder",     content: "Extract wonder signals from landscape + cards",  status: "pending", deps: ["read_core"] },
+  { id: "read_core",  content: "Core paper read + paper notes (fan-out)",        status: "pending", deps: ["merge"] },
+  { id: "wonder",     content: "Extract wonder signals from landscape + notes",  status: "pending", deps: ["read_core"] },
   { id: "generate",   content: "Wonder-driven idea generation (3 lenses)",       status: "pending", deps: ["wonder"] },
   { id: "novelty",    content: "Per-claim novelty check (parallel scholars)",    status: "pending", deps: ["generate"] },
   { id: "review",     content: "Adversarial review of survivors",                status: "pending", deps: ["novelty"], assign: "critic" },
@@ -166,7 +176,7 @@ research_state(action="brief", context_refresh={trigger: "session_resume", loade
 - At least one idea is ready for user selection
 - Survey artifacts under `docs/surveys/` (01a-01d + 02_landscape.md)
 - `docs/surveys/survey.md` contains the final synthesized survey
-- Paper Cards for core papers in `docs/papers/{slug}.md`
+- Per-paper notes for core papers recorded in Scholens (annotation threads) and reflected in `docs/surveys/`
 - Relevant papers ingested into the Scholens project via `mcp__scholens__ingest_paper`
 - Gaps recorded in `docs/gaps.md`
 
@@ -298,21 +308,24 @@ task(subagent_type="scholar", background=true):
    friction signals. Return a short handoff summary."
 ```
 
-### Round 3: Core Paper Read → Paper Cards
+### Round 3: Core Paper Read → Paper Notes
 
 For each paper in `core_paper_worklist`, dispatch one reader (fan-out, parallel):
 
 ```
 task(subagent_type="scholar", background=true):
-  "You are the PaperCardWriter. Read ONE paper in full and write a compact, anchor-aware
-   card for <arXiv id> (<title>). Why it matters: <why from worklist>.
-   1. If docs/papers/<slug>.md already exists, EXTEND it (append-only card).
+  "You are the PaperNoteWriter. Read ONE paper in full and produce a compact, anchor-aware
+   note for <arXiv id> (<title>). Why it matters: <why from worklist>.
+   1. Record the note in Scholens: create an annotation thread on the paper whose
+      initial_comment is the note; if a thread already exists, append a comment.
+      Fall back to a dated section in the relevant docs/surveys/ artifact only when
+      annotation anchors cannot be resolved. Never write paper files.
    2. Read full text: mcp__scholight__extract_url('https://arxiv.org/html/<id>',
       output='main_markdown', max_chars=200000). If that fails or returns <500 chars,
       arxiv_download to a scratch path under /tmp and read the PDF. If both
       fail, proceed from the abstract and mark evidence: abstract_only.
-   3. Write/append the card per the Paper Card contract: header, problem, method,
-      results (with caveats), anchor_relevance, transfer, evidence.
+   3. Note content per the paper-notes contract: header, problem, method, results
+      (with caveats), anchor_relevance, transfer, evidence.
    Ground every claim in the paper. Never fabricate numbers, methods, or results."
 ```
 
@@ -349,7 +362,7 @@ After all rounds complete, synthesize into `docs/surveys/survey.md`:
 
 ### 2.1 From landscape to wonder log
 
-Go through the landscape's `wonder_signal_candidates` and the paper cards, and extract every signal that doesn't fit:
+Go through the landscape's `wonder_signal_candidates` and the paper notes, and extract every signal that doesn't fit:
 
 | Signal Type | Source | What doesn't fit | Why it matters | Next check |
 |-------------|--------|------------------|----------------|------------|
@@ -392,7 +405,7 @@ Generate ideas by borrowing **only the core causal primitive** from another fiel
 task(subagent_type="scholar", background=true):
   "You are the TransferLens. Generate research ideas for <anchor> by borrowing the core
    causal primitive from another field.
-   1. Read docs/surveys/02_landscape.md and the paper cards (transfer
+   1. Read docs/surveys/02_landscape.md and the paper notes (transfer
       fields are seeds).
    2. Identify the STRUCTURE of the anchor's bottleneck: representation mismatch,
       objective mismatch, search geometry, or feedback-loop structure. Find a field
@@ -576,7 +589,7 @@ Present a structured report:
 
 ### Survey Coverage
 - Papers examined: N
-- Paper cards built: N (with evidence levels)
+- Paper notes recorded: N (with evidence levels)
 - Wonder signals identified: N (anomalies, contradictions, missing mechanisms, etc.)
 - Date range: YYYY-MM to YYYY-MM
 - Survey artifacts: `docs/surveys/` (01a-01d + 02_landscape.md)

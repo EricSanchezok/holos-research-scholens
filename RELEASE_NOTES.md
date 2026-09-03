@@ -13,6 +13,7 @@ Derived plugin of `yzxoi/holos-research` (MIT). The literature subsystem moves f
 - **Legacy compatibility**: `.research/literature/` from an upstream project is left as a read-only archive (never written/indexed/migrated); legacy AGENTS.md referencing `research_wiki` is regenerated once on the first `research_init` reload; legacy timeline `wiki.*` event types still parse.
 - Agent prompts (auditor) and all 17 skills rewritten to the Scholens workflow.
 - Plugin identity: id `holos-research-scholens`, version `0.1.0`, author EricSanchez; LICENSE keeps the upstream MIT copyright and adds the derivative copyright.
+- **Upstream release tooling removed**: `.release/registry-entry-holos-research.json`, `script/publish.sh` and `script/update-release.sh` hard-coded the upstream `yzxoi/holos-research` / `SII-Holos/synergy-plugins` publish flow and were deleted with this derivative (no upstream PR/merge intent).
 
 ## Verification
 

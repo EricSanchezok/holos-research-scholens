@@ -169,8 +169,7 @@ Literature does **not** live under `.research/` in this plugin:
 docs/                          # scope-root markdown (created by research_init)
 ├── surveys/                   # literature surveys / scout artifacts
 ├── gaps.md                    # research gaps (G1..) — agent-maintained
-├── scholens-project.md        # scope ↔ Scholens project binding (id/title/url)
-└── papers/                    # optional paper knowledge cards ({slug}.md)
+└── scholens-project.md        # scope ↔ Scholens project binding (id/title/url)
 ```
 
 Legacy projects created before the index are bootstrapped automatically on first read (one-time scan). A legacy `.research/literature/` directory (from the upstream plugin) is treated as a read-only archive: it is never written, indexed, or auto-migrated. Legacy AGENTS.md files that reference `research_wiki` are regenerated once on the first `research_init` reload.

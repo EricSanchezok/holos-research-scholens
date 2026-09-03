@@ -34,7 +34,7 @@ task(subagent_type="scholar", background=true, "Survey benchmarks for [task] in 
 task(subagent_type="scholar", background=true, "Survey benchmarks for [task] in [sub-area C]...")
 ```
 
-After scholars return, ingest any newly discovered benchmark papers into the wiki:
+After scholars return, ingest any newly discovered benchmark papers into the bound Scholens project:
 
 ```
 Ingest the benchmark/paper into the bound Scholens project via `mcp__scholens__ingest_paper(source={kind: "arxiv", arxiv_id: "..."}, project_id="<from docs/scholens-project.md>")`.

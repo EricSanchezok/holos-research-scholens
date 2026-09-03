@@ -64,8 +64,7 @@ Literature lives in a **Scholens project** plus scope-root markdown (not under `
 docs/
 ├── surveys/           # literature surveys / scout artifacts
 ├── gaps.md            # research gaps (G1..) — agent-maintained
-├── scholens-project.md# scope ↔ Scholens project binding (id/title/url)
-└── papers/            # optional paper knowledge cards ({slug}.md)
+└── scholens-project.md# scope ↔ Scholens project binding (id/title/url)
 ```
 
 Legacy projects created before the index are bootstrapped automatically on first read (one-time scan). A legacy `.research/literature/` directory is a read-only archive: never written, indexed, or auto-migrated. A legacy AGENTS.md referencing `research_wiki` is regenerated once on the first `research_init` reload.

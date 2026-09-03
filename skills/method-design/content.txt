@@ -79,7 +79,7 @@ Before beginning any work in this phase:
    ```
    Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
    ```
-   - Read relevant `docs/papers/{slug}.md` knowledge cards — Method, Assumptions, Reusable Ingredients, Limitations
+   - Read the bound project's paper annotations (`list_annotation_threads`) and `docs/surveys/*.md` — Method, Assumptions, Reusable Ingredients, Limitations
    - Review `docs/gaps.md` and `docs/surveys/*.md` for extends/contradicts relationships
 
 4. **Record literature refs**:
@@ -129,7 +129,7 @@ dagwrite({ nodes: [
   { id: "propose",       content: "Write and register the initial plan proposal",  status: "pending", deps: ["authenticity"] },
   { id: "review",        content: "Adversarial method review via critic",          status: "pending", deps: ["propose"], assign: "critic" },
   { id: "revise",        content: "Parse feedback, revise proposal, re-review",   status: "pending", deps: ["review"] },
-  { id: "writeback",     content: "Record plan↔literature links in docs/papers + docs/gaps.md and journal", status: "pending", deps: ["revise"] },
+  { id: "writeback",     content: "Record plan↔literature links in Scholens annotations + docs/gaps.md and journal", status: "pending", deps: ["revise"] },
   { id: "present",       content: "Present final proposal to user for approval",  status: "pending", deps: ["writeback"] },
   { id: "activate",      content: "Approve, activate plan, advance to experiment",status: "pending", deps: ["present"] }
 ]})
@@ -158,7 +158,7 @@ Identify the selected idea from `focus.refs.idea`. Read its `.md` — especially
 Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
 ```
 
-Read relevant `docs/papers/{slug}.md` knowledge cards — focus on Method, Assumptions, Reusable Ingredients, and Limitations. Review `docs/gaps.md` and `docs/surveys/*.md` to understand what extends/contradicts the key prior work.
+Read the bound project's paper annotations (`list_annotation_threads` on the relevant documents) and `docs/surveys/*.md` — focus on Method, Assumptions, Reusable Ingredients, and Limitations. Review `docs/gaps.md` to understand what extends/contradicts the key prior work.
 
 ### 0.3 Check for existing plans
 
@@ -186,7 +186,7 @@ dagpatch({ nodes: [{ id: "load", status: "completed" }] })
 
 ### 1.1 Scan grounding material
 
-From the Scholens project search results, paper cards, and idea positioning, extract:
+From the Scholens project search results, paper notes, and idea positioning, extract:
 
 - What mechanism do current methods use?
 - Where exactly do they fail for this problem?
