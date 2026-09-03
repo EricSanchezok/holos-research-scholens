@@ -24,7 +24,7 @@ Holos-Research 是一个 AI 辅助科研自动化 pipeline，运行于 Synergy �
 ```
 ┌─────────────────────────────────────────────────┐
 │            Synergy Plugin Layer                  │
-│   14 tools · 17 skills · 5 sub-agents           │
+│   14 tools · 17 skills · 4 agents                │
 │   wrapTool() → project dir context injection     │
 ├─────────────────────────────────────────────────┤
 │            Research Engine                       │
@@ -49,13 +49,13 @@ Holos-Research 是一个 AI 辅助科研自动化 pipeline，运行于 Synergy �
 
 ### 2.1 Synergy Plugin Layer
 
-顶层的 Synergy Plugin 注册了 14 个工具、17 个技能和 5 个子代理。所有工具通过 `wrapTool()` 注入项目目录上下文，确保多项目场景下的路径隔离。
+顶层的 Synergy Plugin 注册了 14 个工具、17 个技能和 4 个代理（critic / methodologist / auditor / editor）。所有工具通过 `wrapTool()` 注入项目目录上下文，确保多项目场景下的路径隔离。
 
 **关键职责**：
 
 - **工具注册**：将 `research_init`、`research_state`、`research_idea` 等 14 个工具注册到 Synergy 框架
 - **技能路由**：`research` 技能作为路由层，读取当前 state 后分派到对应阶段技能
-- **子代理管理**：5 个专业子代理（critic / methodologist / auditor / editor / inspector）以 `subagent` 模式运行
+- **子代理管理**：4 个专业代理（critic / methodologist / auditor / editor）以 `subagent` 模式运行；inspector 等评审角色由 skill 层按需调度
 
 ### 2.2 Research Engine
 
@@ -241,12 +241,12 @@ StorySpine 在 explore 阶段创建，在 ground 阶段被 grounding 和 reframi
 
 | Phase          | 核心工具                                                   | 关键 Actions                                        | Inner Loop Update                                               |
 | -------------- | ------------------------------------------------------ | ------------------------------------------------- | --------------------------------------------------------------- |
-| **explore**    | `research_idea`, `research_wiki`                       | create/explore/select idea, ingest papers         | attempt on idea create, evaluate on review, select→attempt      |
-| **ground**     | `research_idea`, `research_wiki`                       | ground idea, register gaps, build positioning     | evaluate on novelty check, decide on grounding result           |
+| **explore**    | `research_idea`                                        | create/explore/select idea, survey literature via Scholens | attempt on idea create, evaluate on review, select→attempt      |
+| **ground**     | `research_idea`                                        | ground idea, record gaps in docs/gaps.md, build positioning | evaluate on novelty check, decide on grounding result           |
 
-### 5.1 Wiki Entity Existence Validation
+### 5.1 文献层说明
 
-The `entityExists` helper is used by `research_wiki` to validate that referenced entity IDs actually exist in the `.research/` directory before allowing operations that depend on them. This applies to gap IDs in particular: when `registerGap` or `updateEntry` references a gap ID (e.g., `gap_001`), `entityExists` verifies that the gap entry exists in `literature/gap_map.yaml`. If the gap ID does not exist, the operation is rejected with a clear error message rather than silently creating a dangling reference. This prevents orphaned gap references from accumulating in the literature knowledge base.
+本插件（holos-research-scholens）不包含本地文献子系统：`research_wiki` 工具、`literature/gap_map.yaml` 关系图、`research_wiki` 的 `entityExists` 校验均已被移除。文献工作流（收录 / 检索 / 标注 / 引用）由 skill 指示 agent 直接调用 `scholens` MCP（`mcp__scholens__*`）；研究缺口记录在 `docs/gaps.md`，综述在 `docs/surveys/`，scope↔Scholens project 绑定在 `docs/scholens-project.md`。
 | **design**     | `research_plan`                                        | create/approve plan, set kill/sufficient criteria | attempt on plan draft, evaluate on review scores, approve→attempt |
 | **realize**    | `research_plan`                                        | realize plan, code review, sanity contract (local <5 min only — `compute_submit` is NOT permitted in realize; advance to `experiment` to submit jobs) | attempt on implementation, evaluate on code review              |
 | **experiment** | `research_experiment`, `compute_submit`                | register/run/complete experiment, RQG report      | attempt on job submit, evaluate on results, decide on diagnosis |
@@ -286,7 +286,7 @@ LazyScopedMutex 解决了一个关键问题：模块级别的 `const m = getMute
 | `review`       | Review round number | ResearchReview.addReview()                                 |
 | `agents_md`    | AGENTS.md 写入      | research_state handleBrief()                               |
 | `note`         | Journal 写入        | ResearchJournal.appendNote()                               |
-| `wiki`         | Wiki/literature 写入 | research_wiki handleIngestPaper/handleRegisterGap/handleUpdateEntry |
+
 
 **锁层级**：`state` → `phase_run`（`research_state` 的 execute 函数在 `stateMutex` 下调用 PhaseRunManager 方法，PhaseRunManager 内部获取 `phaseRunMutex`）。当前代码中不存在反向顺序，但未强制执行锁层级。
 
@@ -454,14 +454,14 @@ Compose 阶段使用消歧逻辑：
 
 | 技能                | 功能                      |
 | ----------------- | ----------------------- |
-| `lit-knowledge`   | 文献知识库管理：论文摄入、关系图、gap 注册 |
+| `lit-knowledge`   | Scholens 文献工作流：project 绑定、论文摄入/检索/标注/引用 |
 | `peer-review`     | 结构化对抗性评估，支持并行独立 review  |
 | `paper-audit`     | 投稿前 7 维度质量保证（compose 阶段常用） |
 | `paper-revise`    | 反馈驱动的论文修订（compose 阶段常用）  |
 | `venue-cycle`     | 投稿/审稿/rebuttal/修订全流程（compose 阶段常用） |
 | `project-archive` | 冻结和归档完整研究记录（非阶段路由，手动调用） |
 
-### 8.3 五个专业子代理
+### 8.3 四个专业代理
 
 | 代理                | 模式       | 角色                                                                                                                            |
 | ----------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------- |
@@ -587,17 +587,6 @@ PhaseFlow 组件渲染 6 阶段的拓扑图，包含：
 │   ├── sub_001.md
 │   └── sub_001.reviews.jsonl
 │
-├── literature/                  # 文献知识库
-│   ├── survey.md
-│   ├── references.bib
-│   ├── gap_map.yaml
-│   ├── edges.jsonl
-│   ├── log.jsonl
-│   ├── LIT_CONTEXT.md
-│   ├── by-topic/
-│   └── papers/
-│       └── {slug}.yaml          # 每篇论文的元数据
-│
 ├── phase_runs/                  # PhaseRun 实例
 │   └── run_{timestamp}_{rand}.yaml
 │
@@ -637,7 +626,8 @@ PhaseFlow 组件渲染 6 阶段的拓扑图，包含：
 
 ```
 {project}/
-├── .research/                   # 研究数据（核心）
+├── .research/                   # 研究数据（核心；不含文献库）
+├── docs/                        # 文献层 markdown：surveys/、gaps.md、scholens-project.md、papers/
 ├── AGENTS.md                    # 自动加载的行为规则 + 状态摘要
 ├── .gitignore                   # 排除大文件和构建产物
 ├── pyproject.toml               # Python 环境管理（uv）

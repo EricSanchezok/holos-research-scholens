@@ -1,3 +1,26 @@
+# holos-research-scholens v0.1.0 — Scholens-Backed Literature (derived)
+
+## Summary
+
+Derived plugin of `yzxoi/holos-research` (MIT). The literature subsystem moves from a local `.research/literature/` store to a **Scholens project** driven through the `scholens` MCP server. Replace-install: remove the upstream `holos-research` plugin before enabling this one (tool/skill/agent/event IDs are shared).
+
+## What's Changed vs Upstream holos-research v1.1.1
+
+- **14 tools** — `research_wiki` removed. All other tool IDs, schemas, and the `.research/` non-literature data layout are unchanged (`research_init`, `research_state`, `research_idea`, `research_plan`, `research_experiment`, `research_claim`, `research_exhibit`, `research_paper`, `research_submission`, `research_timeline`, `research_monitor`, `research_journal`, `compute_submit`, `research_checkpoint_brief`).
+- **Literature → Scholens**: paper ingest/search/annotate/citation via `mcp__scholens__*` (guided by the rewritten `lit-knowledge` skill); no local paper store.
+- **Surveys & gaps → markdown**: `research_init` creates `docs/surveys/` at the scope root; surveys are plain markdown there, research gaps in `docs/gaps.md`, scope↔project binding in `docs/scholens-project.md`.
+- **Removed code**: `src/tools/wiki.ts`, `src/resolve/`, `src/match/`, schema literature types, `index-registry` literature buckets, init literature stubs, and their tests.
+- **Legacy compatibility**: `.research/literature/` from an upstream project is left as a read-only archive (never written/indexed/migrated); legacy AGENTS.md referencing `research_wiki` is regenerated once on the first `research_init` reload; legacy timeline `wiki.*` event types still parse.
+- Agent prompts (auditor) and all 17 skills rewritten to the Scholens workflow.
+- Plugin identity: id `holos-research-scholens`, version `0.1.0`, author EricSanchez; LICENSE keeps the upstream MIT copyright and adds the derivative copyright.
+
+## Verification
+
+- `typecheck` / `lint` / 561 tests / `build` / `validate` / `pack` all pass.
+- New coverage: research_init creates docs/surveys and never creates `.research/literature`; legacy AGENTS.md one-time regeneration; legacy `wiki.*` timeline events parse.
+
+---
+
 # holos-research v1.1.1 — Compose Quality Gates (unreleased)
 
 ## Summary

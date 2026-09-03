@@ -1,8 +1,10 @@
-# Holos Research
+# Holos Research Scholens
 
 A [Synergy](https://github.com/SII-Holos/synergy) Plugin API 4 plugin for **structured research management** — from idea discovery through paper submission, with full state machine tracking, adversarial review, and audit trail.
 
-> Research-group SOP for AI-assisted research. Public distribution.
+> **Derived from** [`yzxoi/holos-research`](https://github.com/yzxoi/holos-research) (MIT). This derivative moves the literature workflow onto a **Scholens project** (via the `scholens` MCP server) instead of a local `.research/literature/` store.
+>
+> **⚠️ Replace-install**: this plugin shares tool/skill/agent/event IDs with the upstream `holos-research` plugin. Remove the upstream plugin first — they must not be enabled at the same time.
 
 ## Overview
 
@@ -10,10 +12,11 @@ A research operating system for months-long projects:
 
 - **1 project-level state machine** — 6 phases: explore → ground → design → realize → experiment → compose
 - **7 object-level state machines** — Idea, Plan, Experiment, Claim, Exhibit, Paper, Submission
-- **15 tools** — entity lifecycle management, checkpoint/monitor/journal, compute submission
+- **14 tools** — entity lifecycle management, checkpoint/monitor/journal, compute submission
 - **4 specialized agents** — critic, methodologist, auditor, editor
 - **17 skills** — per-phase skills + inner-loop iterations + cross-cutting orchestrators
 - **5 utility scripts** — stats, plot, figure_renderer, paper_check, restatement_check
+- **Scholens literature backend** — papers, metadata, full text, annotations and citation metadata live in a Scholens project; surveys are plain markdown under `docs/surveys/`, research gaps under `docs/gaps.md`. No local literature store.
 - **Embedded Monitor** — a trusted Solid workbench panel (side surface) rendering the workflow board, timeline, journal, entity summaries, research brief, diagnosis ladder, story radar, and pending human checkpoints. Data flows through typed query operations + a `research.changed` event (no polling).
 
 Architecture:
@@ -22,10 +25,14 @@ Architecture:
 Synergy (Plugin API 4)              .research/ (single source of truth)
 ────────────────────────────        ──────────────────────────────────
 • definePlugin contributions        state.yaml + index.yaml
-• 15 tool() + 9 operation()         ideas/ plans/ experiments/ claims/
+• 14 tool() + 9 operation()         ideas/ plans/ experiments/ claims/
 • 4 agent() + 17 skill()            exhibits/ manuscripts/ submissions/
 • ui.workbenchPanel (Monitor)       timeline.jsonl journal/ phase_runs/
-• workspace.read/write Host APIs    literature/ positioning/ rqg/ diagnoses/
+• workspace.read/write Host APIs    positioning/ rqg/ diagnoses/ ...
+                                    ──────────────────────────────
+Scholens MCP (literature)           docs/ (plain markdown)
+• mcp__scholens__* tools            docs/surveys/*.md  docs/gaps.md
+• project papers + annotations      docs/scholens-project.md (binding)
 ```
 
 See [DESIGN.md](./DESIGN.md) for the full design document.
@@ -34,13 +41,16 @@ See [DESIGN.md](./DESIGN.md) for the full design document.
 
 - Synergy `>= 3.0.11` (Plugin API 4)
 - Bun 1.x for development
+- A configured **`scholens` MCP server** in the host (the literature workflow calls `mcp__scholens__*` tools directly). If Scholens is unavailable, research tools still work — literature steps are skipped with a clear notice.
 
 ## Installation (local directory)
 
+> Remove the upstream `holos-research` plugin first — this plugin is a replace-install.
+
 ```bash
 bunx synergy-plugin build
-synergy plugin add file:///absolute/path/to/holos-research
-synergy plugin approve holos-research
+synergy plugin add file:///absolute/path/to/holos-research-scholens
+synergy plugin approve holos-research-scholens
 ```
 
 The plugin requests only `workspace.read` and `workspace.write` capabilities. Approved plugins show a **Research Monitor** workbench panel; open it from the workbench surface. Each Scope with a `.research/` project gets its own monitor tab.
@@ -68,7 +78,7 @@ synergy-plugin dev --server-url http://127.0.0.1:PORT
 
 | Tool | Actions | Purpose |
 |------|---------|---------|
-| `research_init` | — | Initialize `.research/` + materialize bundled scripts |
+| `research_init` | — | Initialize `.research/` + `docs/` + materialize bundled scripts |
 | `research_state` | read, advance, redirect, block, resume, brief, overview | Project-level state machine (6 phases) |
 | `research_idea` | create, derive, update, select, park, reject, review, list | Idea lifecycle + review sidecar |
 | `research_plan` | create, refine, approve, activate, supersede, cancel, review, list, update | Method plan lifecycle |
@@ -77,7 +87,6 @@ synergy-plugin dev --server-url http://127.0.0.1:PORT
 | `research_exhibit` | create, bind_sources, render, verify, approve, supersede, drop, review, list, update | Figure/table provenance |
 | `research_paper` | create, sync_source, advance, archive, review, bind, list, update | Manuscript lifecycle |
 | `research_submission` | create, submit, record_round, enter_rebuttal, request_revision, resubmit, close, review, list, update | Venue interaction lifecycle |
-| `research_wiki` | ingest_paper, link, register_gap, update_entry, query, lint, verify_bib, stats | Literature knowledge base (DBLP→S2→arXiv→CrossRef) |
 | `research_timeline` | read, append_free_event | Append-only research history |
 | `research_monitor` | workflow, phase, entities, timeline, journal, active_run | Agent-facing dashboard views |
 | `research_journal` | append_note, query, human_decisions | Research journal (append-only) |
@@ -86,13 +95,15 @@ synergy-plugin dev --server-url http://127.0.0.1:PORT
 
 Monitor query operations (UI-facing): `monitor.all`, `monitor.workflow`, `monitor.phase`, `monitor.entities`, `monitor.timeline`, `monitor.journal`, `monitor.activeRun`, `monitor.brief`, `monitor.checkpointSummary`.
 
+Literature operations (ingest/search/annotate/cite) are performed through the **Scholens MCP** (`mcp__scholens__*`), guided by the `lit-knowledge` skill.
+
 ## Agents
 
 | Agent | Purpose |
 |-------|---------|
 | `critic` | Adversarial evaluation — challenges novelty, method, claims, paper quality. 8 core tests, structured scoring. |
 | `methodologist` | Constructive design — methods, experiment matrices, baselines, ablations, validation strategies. |
-| `auditor` | Forensic verification — data provenance, citation accuracy, figure-data consistency, reproducibility. |
+| `auditor` | Forensic verification — data provenance, citation accuracy (via Scholens), figure-data consistency, reproducibility. |
 | `editor` | Writing review — narrative structure, argument flow, prose quality, visual presentation. |
 
 ## Skills
@@ -114,7 +125,7 @@ Monitor query operations (UI-facing): `monitor.all`, `monitor.workflow`, `monito
 | `project-archive` | compose | Freeze snapshot + generate supplementary bundle |
 | `idea-refine` | cross-cutting | Incremental idea optimization from feedback |
 | `method-iterate` | cross-cutting | Feedback-driven plan revision |
-| `lit-knowledge` | cross-cutting | Literature knowledge base management |
+| `lit-knowledge` | cross-cutting | Scholens literature workflow: project binding, ingestion, search, annotation, citation |
 | `peer-review` | cross-cutting | Orchestrate adversarial review at any stage |
 
 ## Scripts
@@ -146,14 +157,24 @@ All research state lives in `.research/` at the Scope root — the single source
 ├── index.yaml                 # Entity index (enumeration source for the workspace API)
 ├── timeline.jsonl             # Append-only history
 ├── ideas/ plans/ experiments/ claims/ exhibits/
-├── manuscripts/ submissions/ literature/
+├── manuscripts/ submissions/
 ├── phase_runs/ journal/ snapshots/
 ├── positioning/ code_artifacts/ rqg/ diagnoses/ checkpoint_briefs/
 └── scripts/                   # Bundled utility scripts + themes/
 ```
 
-Legacy projects created before the index are bootstrapped automatically on first read (one-time scan).
+Literature does **not** live under `.research/` in this plugin:
+
+```
+docs/                          # scope-root markdown (created by research_init)
+├── surveys/                   # literature surveys / scout artifacts
+├── gaps.md                    # research gaps (G1..) — agent-maintained
+├── scholens-project.md        # scope ↔ Scholens project binding (id/title/url)
+└── papers/                    # optional paper knowledge cards ({slug}.md)
+```
+
+Legacy projects created before the index are bootstrapped automatically on first read (one-time scan). A legacy `.research/literature/` directory (from the upstream plugin) is treated as a read-only archive: it is never written, indexed, or auto-migrated. Legacy AGENTS.md files that reference `research_wiki` are regenerated once on the first `research_init` reload.
 
 ## License
 
-MIT — Copyright (c) 2026 [yzxoi](https://github.com/yzxoi)
+MIT — upstream Copyright (c) 2026 [yzxoi](https://github.com/yzxoi); derivative Copyright (c) 2026 [EricSanchez](https://github.com/EricSanchezok). See [LICENSE](./LICENSE).
