@@ -1,39 +1,56 @@
-# Lit Knowledge — Literature Knowledge Base Management
+# Lit Knowledge — Scholens Literature Workflow
 
 > **User request:** $ARGUMENTS
 
 ## ⚠️ CRITICAL RULES
 
-1. **ALL literature files under `.research/literature/`** — never write to project root.
-2. **Use `research_wiki(ingest_paper)` to register papers** — not `write` or `note_write`.
-3. **Downloaded PDFs → `.research/literature/papers/{slug}.pdf`**.
-4. **BibTeX → `.research/literature/references.bib`** (auto-managed by ingest_paper).
-5. **Subagents return text, not files.**
+1. **Papers live in Scholens, never in `.research/literature/`.** This plugin has no local literature store. A legacy `.research/literature/` directory is read-only archive — do not write to it, index it, or migrate it automatically.
+2. **Use the Scholens MCP tools directly** (`mcp__scholens__*`) for every literature operation — never invent local file paths for papers, metadata, or annotations.
+3. **Bind the scope to a Scholens project first** and record the binding in `docs/scholens-project.md` (see § Bind Project).
+4. **Surveys go in `docs/surveys/*.md`**; research gaps go in `docs/gaps.md`; both are plain markdown (agent-maintained, no tool/schema).
+5. **Do NOT call research-output / data-table creation tools** (`mcp__scholens__list_research_output_summaries` etc.) — the server's output schema for those is unstable. Use papers, projects, annotations, citations, tags, and search only.
 6. **Follow AGENTS.md at project root** — code discipline, directory structure, tool usage, naming conventions.
 7. **End session with `research_state(action="brief")`** to update AGENTS.md dynamic state.
-8. **Git commit research artifacts** after modifying .research/ files.
+8. **Git commit research artifacts** (docs/surveys, docs/gaps) after modifying them.
 
 ---
 
 ## What This Skill Manages
 
-The `.research/literature/` directory contains:
+Literature for a research scope is split across two stores:
 
 ```
-literature/
-├── survey.md              ← Full survey narrative from explore phase
-├── by-topic/              ← Deep notes organized by sub-topic
-├── papers/
-│   ├── {slug}.yaml        ← Structured paper metadata (tool-managed)
-│   └── {slug}.md          ← Paper knowledge page (agent-edited)
-├── gap_map.yaml           ← Registered research gaps (tool-managed)
-├── edges.jsonl            ← Relationship graph (tool-managed)
-├── log.jsonl              ← Wiki mutation log (tool-managed)
-├── LIT_CONTEXT.md         ← Compressed context view (auto-generated)
-└── references.bib         ← BibTeX entries
+Scholens project (cloud)                  scope root (markdown)
+─────────────────────                     ───────────────────────
+• papers: PDF, metadata, full text        docs/scholens-project.md  ← binding (id/title/url)
+• ingestion: arXiv / DOI / URL / upload   docs/surveys/*.md         ← survey narratives
+• annotations & discussion threads        docs/gaps.md              ← research gaps (G1..)
+• library tags
+• citation metadata
 ```
 
-**Scope boundary**: This skill manages PAPER KNOWLEDGE, RELATIONSHIPS, and GAPS. It does NOT manage research ideas, plans, experiments, claims, exhibits, or papers — those have their own tools. Ideas and experiments may appear as edge endpoints (e.g. `idea_003`, `exp_001`) but their entity files belong to their own tools.
+**Scope boundary**: This skill manages PAPER KNOWLEDGE via Scholens and the survey/gap markdown. It does NOT manage research ideas, plans, experiments, claims, exhibits, manuscripts, or submissions — those have their own tools under `.research/`.
+
+**Requirement**: the host must have the `scholens` MCP server enabled (remote server configured with credentials). Before any literature step, verify the MCP tools are visible (e.g. `mcp__scholens__list_projects`). If Scholens is unavailable, state clearly that literature steps need the Scholens MCP and skip them — do NOT fall back to a local literature store.
+
+---
+
+## Bind Project (scope ↔ Scholens project)
+
+Each research scope binds exactly one Scholens project. Project title = `state.project` (read via `research_state(action="overview")`).
+
+1. **Look up**: `mcp__scholens__list_projects` — find an exact title match.
+2. **Create** if missing: `mcp__scholens__create_project(title="<state.project>", description="<anchor>")`.
+3. **Multiple matches**: pick the most recently updated; if genuinely ambiguous, list candidates and ask the user to choose.
+4. **Record the binding** in `docs/scholens-project.md`:
+   ```
+   # Scholens Project Binding
+   project_id: <uuid>
+   title: <state.project>
+   url: <web url if returned>
+   updated: <ISO date>
+   ```
+5. **Re-verify each literature session**: re-run `list_projects`; reuse the binding when the title/id still match; rebuild the binding if the id is gone.
 
 ---
 
@@ -41,233 +58,125 @@ literature/
 
 ```mermaid
 graph LR
-    load[Load Context] --> search[Search Literature]
+    load[Load Binding] --> search[Search Scholens]
     search --> ingest[Ingest Papers]
-    ingest --> register_gaps[Register Gaps]
-    register_gaps --> link[Link Entities]
-    link --> writeback[Update Context View]
+    ingest --> annotate[Annotate / Discuss]
+    annotate --> writeback[Write surveys + gaps]
 ```
 
 Nodes:
-- `load` — Load existing wiki state, gap map, and LIT_CONTEXT.md
-- `search` — Discover papers via `mcp__scholight__search_papers` (semantic retrieval; fall back to websearch/webfetch on arxiv.org or the arXiv search tool only if scholight is unavailable), or user input
-- `ingest` — Register papers via `ingest_paper` (creates .yaml, .md, bib entry)
-- `register_gaps` — Identify and register research gaps in gap_map.yaml
-- `link` — Add relationship edges between papers, ideas, gaps, and experiments
-- `writeback` — Run `query` to regenerate LIT_CONTEXT.md and `lint` for health check
+- `load` — read `docs/scholens-project.md`, verify with `list_projects`, reload state via `research_state(action="overview")`
+- `search` — discover papers with `mcp__scholens__search_scholens_knowledge` (semantic search over stored papers/annotations) or `mcp__scholens__ingest_paper` for known arXiv/DOI/URL
+- `ingest` — add papers to the project (see § Ingestion)
+- `annotate` — highlight passages, add annotation threads
+- `writeback` — persist survey notes under `docs/surveys/` and gaps in `docs/gaps.md`
 
 ---
 
-## Skill Checklist (v2.2)
+## Skill Checklist
 
 ### Must
-- Read current state via `research_state(action="overview")` before acting
-- Record decision rationale in journal via `research_journal(action="append", kind="decision_rationale", note="...")`
-- When a human checkpoint is triggered, the system auto-generates a brief; use `research_checkpoint_brief(action="read")` to view it
-- Register papers via `research_wiki(action="ingest_paper")` — never via `write` or `note_write`
-- Run `research_wiki(action="query")` after batch mutations to keep LIT_CONTEXT.md current
+- Bind (or verify) the Scholens project before ingesting/searching; record in `docs/scholens-project.md`
+- Ingest papers via `mcp__scholens__ingest_paper(s)` / `add_papers_to_project` — never write paper files locally
+- Write survey narrative under `docs/surveys/`; maintain `docs/gaps.md`
+- Record decisions in the journal via `research_journal(action="append", kind="decision_rationale", ...)`
 
 ### Forbidden
-- Do not write literature files outside `.research/literature/`
-- Do not hand-edit the auto-generated Connections section in paper pages
-- Do not prune Failed Approaches / Banlist from LIT_CONTEXT.md
+- Do NOT write anything under `.research/literature/` (legacy archive only)
+- Do NOT save PDFs or `.bib` files into the research store — keep them in Scholens; generate manuscript `.bib` from `mcp__scholens__get_paper_citation` at compose time
+- Do NOT use research-output / data-table / audio-overview tools (schema unstable)
+- Do NOT silently double-write a paper both to Scholens and anywhere local
 
 ### Checkpoints
-- papers_ingested
-- gaps_registered
-
----
-
-## Context Refresh (Mandatory at Entry)
-
-When re-entering this skill (new session or after context compaction):
-
-1. **Load state** — `research_state(action="overview")` → get current phase, focus refs, active run
-2. **Read phase run** — `research_state(action="read")` → inner loop state, attempts, stagnation
-3. **Check wiki** — `research_wiki(action="query", query="literature gaps and papers")` → relevant knowledge
-4. **Review journal** — `research_journal(action="read", last=10)` → recent decisions and rationale
-5. **Resume or pivot** — If `inner_loop.state === "evaluate"`, review progress metric and decide; if `"decide"`, check stagnation and choose iterate/pivot/promote
-
-After refresh, write context recovery to the phase run:
-```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","wiki","journal"], checked_skill_rules: true})
-```
+- papers_ingested (Scholens project has the papers; survey notes drafted)
 
 ---
 
 ## Tool Operations
 
-All operations go through the `research_wiki` tool.
+### Ingestion
 
-### `ingest_paper` — Register a new paper
-
-Creates three artifacts atomically:
-- `papers/{slug}.yaml` — structured metadata
-- `papers/{slug}.md` — knowledge page (template, you edit afterward)
-- BibTeX entry in `references.bib`
+Prefer the bound project as the destination for every ingest:
 
 ```
-research_wiki(action="ingest_paper",
-  title="Factorized Gap in Discrete Diffusion LMs",
-  authors=["Chen, A.", "Smith, B."],
-  year=2025,
-  venue="ICML 2025",
-  arxiv="2501.12345",
-  tags=["discrete-diffusion", "factorization"],
-  relevance="core")
+mcp__scholens__ingest_paper(source={kind: "arxiv" | "doi" | "url", arxiv_id|doi|url: "..."}, project_id="<uuid>", add_to_library: false)
 ```
 
-Required: `title`, `year`. Optional: `authors`, `venue`, `arxiv`, `doi`, `tags`, `relevance`, `cite_key`.
+- Known identifiers → `ingest_paper` (arXiv id / DOI / URL)
+- Batches of known papers → `ingest_papers` (1–50 sources)
+- Paper already in your personal Library → `add_papers_to_project(project_id, document_ids=[...])`
+- Local PDF → `prepare_paper_upload` (filename/size/sha256) then `ingest_paper(source={kind: "upload", upload_id})`; if the paper is a discovery target (no known id), search first — do not guess identifiers
+- Duplicates are resolved server-side; a repeated ingest returns the existing document
 
-When ingesting, pass content directly via the tool params (`thesis`, `method`, `key_results`, `limitations`, `project_relevance`). The .md is auto-populated from these — no separate edit needed for most papers. Use `edit` only for adding extra sections like "## Reusable Ingredients" or "## Open Questions".
-
-**Slug collision**: If the paper already exists, the tool returns the existing entry. Use `update_entry` to patch metadata instead.
-
-### `link` — Add a relationship edge
-
-Edges are the connective tissue of the knowledge graph.
+### Search & Read
 
 ```
-research_wiki(action="link",
-  from="idea_003",
-  to="wang2024_d3pm",
-  edge_type="inspired_by",
-  evidence="Core mechanism adapts Wang's skip connection pattern")
+mcp__scholens__search_scholens_knowledge(query="...", scope={kind: "project", project_id: "<uuid>"})
+mcp__scholens__list_project_papers(project_id="<uuid>", query="...")
+mcp__scholens__get_paper(document_id="<uuid>")          # metadata + processing state
+mcp__scholens__get_paper_content(document_id="<uuid>")  # extracted text (bounded pages)
+mcp__scholens__get_paper_download_url(document_id="<uuid>")  # original PDF (short-lived)
 ```
 
-Required: `from`, `to`, `edge_type`, `evidence`.
+Prefer `search_scholens_knowledge` for semantic questions across the project (papers + annotations). Use `list_project_papers` for a full inventory of the bound project.
 
-Edge types and their semantics:
-
-| Type | Meaning | Typical direction |
-|------|---------|-------------------|
-| `extends` | Builds on prior work | new → old |
-| `contradicts` | Findings conflict | contradicter → contradicted |
-| `addresses_gap` | Targets a known gap | paper/idea → gap |
-| `inspired_by` | Derived from prior work | new → old |
-| `tested_by` | Validated by experiment | paper → experiment |
-| `supports` | Evidence supports claim | experiment → paper/idea |
-| `invalidates` | Evidence against | experiment → paper/idea |
-| `supersedes` | Replaces prior work | newer → older |
-
-Endpoint formats: paper slug (`chen2025_gap`), idea ID (`idea_003`), experiment ID (`exp_001`), plan ID (`plan_002`), gap ID (`G01`).
-
-### `register_gap` — Register a research gap
+### Annotate & Discuss
 
 ```
-research_wiki(action="register_gap",
-  description="No existing method handles factorization in the residual branch without gradient detachment",
-  source_paper="austin2021_d3pm")
+mcp__scholens__list_annotation_threads(document_id="<uuid>", audience={kind: "project", project_id: "<uuid>"})
+mcp__scholens__create_annotation_thread(document_id="<uuid>", quote_text="...", position={...}, audience={kind: "project", project_id: "<uuid>"}, initial_comment="...")
+mcp__scholens__create_annotation_comment(thread_id="<uuid>", content="...")
 ```
 
-Required: `description`. Optional: `source_paper`.
+Quote text must be exact visible paper text — never fabricate a quote. Use project audience for shared research context; library tags (`create_library_tag`, `replace_library_paper_tags`) for personal organization.
 
-ID is auto-assigned (G01, G02, ...). After creating a gap, link ideas to it:
-```
-research_wiki(action="link", from="idea_002", to="G01", edge_type="addresses_gap", evidence="...")
-```
+### Citation metadata (for manuscripts)
 
-### `update_entry` — Patch metadata
-
-Patch fields on an existing paper or gap without rewriting the full record.
+When composing a paper, generate the manuscript `.bib` from Scholens citations in the paper directory (not under `.research/`):
 
 ```
-research_wiki(action="update_entry", target_id="chen2025_gap", field="relevance", value="core")
-research_wiki(action="update_entry", target_id="G03", field="status", value="closed")
+mcp__scholens__get_paper_citation(document_id="<uuid>", style="APA")
+mcp__scholens__resolve_paper_citation(document_id="<uuid>")   # when stored fields are incomplete
 ```
 
-Supported paper fields: `relevance`, `tags`. Supported gap fields: `status`, `linked_ideas`.
+### Survey & Gap writeback (plain markdown)
 
-### `query` — Generate compressed context view
-
-Reads all papers, gaps, edges, and generates `LIT_CONTEXT.md` within the 8000-character budget.
-
-```
-research_wiki(action="query")
-```
-
-Call this after any batch of mutations to keep the view current. LIT_CONTEXT.md is what other skills read for a quick landscape overview.
-
-### `lint` — Health check
-
-Detects: orphan papers, stale gaps, dangling edges, sparse pages, duplicate bib entries.
-
-```
-research_wiki(action="lint")
-```
-
-Run after exploration rounds, before reviews, or when the library exceeds 15 papers.
-
-### `stats` — Overview statistics
-
-Paper count by relevance, gap count by status, edge count by type, last-updated timestamps.
-
-```
-research_wiki(action="stats")
-```
-
----
-
-## Paper Page Schema
-
-Each `papers/{slug}.md` follows this structure:
+After a reading batch, write the narrative to `docs/surveys/<topic>.md` (see § Survey Format) and update `docs/gaps.md`:
 
 ```markdown
-# {Title}
-
-## Thesis
-{One-line thesis: the single claim this paper stakes}
-
-## Problem / Gap
-{What specific problem does this paper address?}
-
-## Method
-{2-5 sentences on the core technique. Precise about mechanisms, not just names.}
-
-## Key Results
-{Quantitative results with numbers and datasets. No vague "significant improvement".}
-
-## Assumptions
-{What does the method assume? These are the conditions under which results hold.}
-
-## Limitations / Failure Modes
-{What the authors acknowledge. What conditions would cause the method to break?}
-
-## Reusable Ingredients
-{Components that could be repurposed: loss functions, architectures, training tricks.}
-
-## Open Questions
-{Questions the paper raises but does not answer. Seed points for new ideas.}
-
-## Connections
-{AUTO-GENERATED from edges — do not hand-edit.}
-
-## Relevance to This Project
-{Why does this paper matter for our specific research direction?}
+## G1 — <short title>
+- **Description**: ...
+- **Source**: <paper title / Scholens document id>
+- **Linked ideas**: idea_00X (if any)
+- **Status**: open | partially_addressed | closed
 ```
 
-The Connections section is populated from `edges.jsonl` on each `query` call. Manual edits will be overwritten.
+Gap IDs are sequential (G1, G2, ...). `novelty-ground` and `method-design` read gaps from `docs/gaps.md` instead of a local gap graph.
 
 ---
 
-## LIT_CONTEXT.md Format
+## Survey Format (`docs/surveys/<topic>.md`)
 
-Hard budget: 8000 characters. Prune order (first to cut → last to cut):
+```markdown
+# <Survey Title>
 
-`time-critical signals > baselines > chains > open questions > key papers > gaps`
+> Generated <date> from the Scholens project "<state.project>"
 
-**NEVER prune Failed Approaches / Banlist.**
+## Scope
+{what question this survey answers}
 
-| Section | Budget | Content |
-|---------|--------|---------|
-| Project Direction | 300 chars | Research direction and current focus |
-| Key Papers | 2000 chars | Table: slug, one-line thesis, relevance, linked gaps |
-| Active Gaps | 1200 chars | Numbered list: gap ID, description, linked ideas |
-| Failed Approaches / Banlist | 1400 chars | Methods tried and failed, with reason. NEVER prune. |
-| Known Baselines | 800 chars | Table: dataset, metric, baseline score, source paper |
-| Open Questions | 800 chars | Unresolved questions from the literature |
-| Time-Critical Signals | 800 chars | New papers, trending methods, concurrent work (< 3 months) |
-| Active Chains | 700 chars | Connected edge sequences forming reasoning chains |
+## Papers
+{bullet list: title — one-line takeaway; paper ids are Scholens document ids}
+
+## Themes
+{clusters of findings, contradictions, open threads}
+
+## Open Questions
+{questions the literature raises but does not answer — seed points for ideas}
+
+## Failed Approaches / Banlist
+{methods tried and failed, with reason — never prune}
+```
 
 ---
 
@@ -275,11 +184,10 @@ Hard budget: 8000 characters. Prune order (first to cut → last to cut):
 
 | Situation | Action |
 |-----------|--------|
-| Slug collision on ingest | Paper already exists. Use `update_entry` to patch metadata. |
-| Dangling edge from lint | Referenced entity was deleted or ID is wrong. Fix the endpoint ID or use `edit` to remove the edge line from `.research/literature/edges.jsonl`. |
-| Sparse page from lint | Paper ingested but `.md` never filled. Read the paper (via `arxiv_download` to `.research/literature/papers/{slug}.pdf`, or `webfetch`) and use `edit` to fill in `.research/literature/papers/{slug}.md`. |
-| Stale gap from lint | Open > 30 days, no linked ideas. Link existing ideas or close if no longer relevant. |
-| Duplicate bib entries from lint | Keep the entry matching the slug, use `edit` to remove the other from `.research/literature/references.bib`. |
-| Query fails (corrupt data) | Inspect flagged YAML/JSONL file, fix syntax, re-run `query`. |
-| LIT_CONTEXT.md over budget | Auto-pruned by query action following the prune order above. |
-
+| Scholens MCP missing / unreachable | State that literature steps need the Scholens MCP and skip them; do not fall back to a local library. |
+| Project title not found on `list_projects` | Create the project (title = `state.project`) and update `docs/scholens-project.md`. |
+| Multiple projects with the same title | Pick the most recently updated; if still ambiguous, ask the user. |
+| Binding id gone (project deleted) | Re-create the project and re-record the binding. |
+| Duplicate ingest | Server resolves duplicates; if you need the existing document id, list project papers and match by title. |
+| Legacy `.research/literature/` exists | Treat as read-only archive; copy any needed survey into `docs/surveys/` manually on request (no auto-migration). |
+| Research-output tool error (schema) | Do not use research-output / data-table tools; use annotations + search instead. |

@@ -5,7 +5,7 @@
 ## ⚠️ CRITICAL RULES
 
 1. **ALL files under `.research/`** — never write to project root.
-2. **Use `research_wiki(ingest_paper)` for every new paper** — not `write` or `note_write`.
+2. **Ingest every new paper into the bound Scholens project** via `mcp__scholens__ingest_paper` (arXiv id / DOI / URL) — never write paper files locally.
 3. **Subagents return text, not files.** Each dispatch includes agent-type-specific file guidance.
 4. **Reviews via `research_idea(action="review")`** — not free-text files.
 5. **Follow AGENTS.md at project root** — code discipline, directory structure, tool usage, and naming conventions.
@@ -20,7 +20,7 @@
 - Record decision rationale in journal via `research_journal(action="append", kind="decision_rationale", note="...")`
 - [ ] Find 2-3 closest works per candidate (not 5 — be precise, not exhaustive)
 - [ ] Produce a grounded StorySpine with: grounded_angle, closest_work_positioning, expected_main_claims
-- [ ] Record used_wiki_refs in phase_run.context_refresh
+- [ ] Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 
 ### Forbidden
 - [ ] Do not reject an idea solely because of partial overlap — reframe first
@@ -49,7 +49,7 @@ Tool contract:
 - Retry once with `strength: "standard"` and a narrower query.
 - If still failing, fall back to `websearch`/`webfetch` on `https://arxiv.org/abs/...` or the arXiv search tool — never block the pipeline on a single tool.
 
-**Paper Card contract** (for every closest work): `research_wiki(ingest_paper)` creates `papers/{slug}.md` as a template; then APPEND/EDIT:
+**Paper Card contract** (for every closest work): create `docs/papers/{slug}.md` (slug = short title key) as the knowledge card; then APPEND/EDIT:
 - `## anchor_relevance` — where this paper sits relative to the idea (`closest work` / `foundation` / `competing mechanism`).
 - `## transfer` — could the method/idea transfer to our direction? how, and what would BLOCK it? (one line if no clear transfer).
 - `## evidence` — `html | full_text | partial | abstract_only`.
@@ -68,7 +68,7 @@ dagwrite({ nodes: [
   { id: "position",  content: "Contribution statement + positioning",          status: "pending", deps: ["closest"] },
   { id: "review",    content: "Single adversarial review (critic + scholar)",  status: "pending", deps: ["position"] },
   { id: "revise",    content: "Parse feedback, revise if needed",              status: "pending", deps: ["review"] },
-  { id: "writeback", content: "Wiki writeback + present to user",              status: "pending", deps: ["revise"] }
+  { id: "writeback", content: "Literature writeback (cards/gaps) + present to user", status: "pending", deps: ["revise"] }
 ]})
 ```
 
@@ -80,13 +80,13 @@ Before beginning any work in this phase:
 
 1. **Load core state**: `research_state(action="read")`
 2. **Load idea**: Read the selected idea's `.yaml` and `.md`
-3. **Load literature**: `research_wiki(action="query")` + `LIT_CONTEXT.md`
-4. **Record wiki refs**: Record `used_wiki_refs` in `phase_run.context_refresh`
+3. **Load literature**: query the Scholens project (`search_scholens_knowledge` + `list_project_papers`) and read `docs/surveys/` + `docs/papers/`
+4. **Record literature refs**: Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 5. **Drift check**: Verify selected idea still addresses `anchor`
 
 After refresh, write context recovery to the phase run:
 ```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","idea","wiki"], checked_skill_rules: true})
+research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","idea","scholens"], checked_skill_rules: true})
 ```
 
 ---
@@ -100,7 +100,7 @@ research_state(action="brief", context_refresh={trigger: "session_resume", loade
 
 - The selected idea has a stable contribution statement and positioning
 - The StorySpine has been grounded with: grounded_angle, closest_work_positioning, expected_main_claims
-- Wiki edges connect the idea to closest works and gaps
+- `docs/papers/` cards and `docs/gaps.md` record how the idea relates to closest works and gaps
 - The idea is ready for method design (or has been rolled back to explore)
 
 ---
@@ -120,9 +120,9 @@ Read the selected idea's core insight, novelty breakdown, and feasibility.
 
 ### 0.3 Load literature context
 ```
-research_wiki(action="query")
+Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
 ```
-Read `LIT_CONTEXT.md` and relevant `papers/{slug}.md`.
+Read `docs/surveys/survey.md` (compressed landscape) and relevant `docs/papers/{slug}.md` knowledge cards.
 
 ### 0.4 Read the anchor
 The `anchor` field is the user's research direction. All novelty assessment is relative to this.
@@ -147,8 +147,8 @@ task(subagent_type="scholar", background=true):
    last 3 months (date_from) to catch concurrent pre-prints.
    For each candidate: arXiv id, title, one-line method, SPECIFIC overlap with our
    idea, date, venue. For the 2-3 most relevant: call
-   research_wiki(action='ingest_paper', ...) and build a Paper Card
-   (anchor_relevance/transfer/evidence sections) in .research/literature/papers/{slug}.md.
+   ingest the paper into the Scholens project (mcp__scholens__ingest_paper) and build a Paper Card
+   (anchor_relevance/transfer/evidence sections) in docs/papers/{slug}.md.
    Return: ranked closest-work shortlist with concrete overlap analysis."
 
 task(subagent_type="scholar", background=true):
@@ -171,8 +171,8 @@ Identify the **2-3** most directly related papers. For each:
 
 ### 1.3 Ingest findings
 
-Register any missed papers with `research_wiki(action="ingest_paper")`.
-Establish relationships: `research_wiki(action="link", ...)`
+Ingest any missed papers into the Scholens project via `mcp__scholens__ingest_paper`.
+Record relationship notes (extends / contradicts / addresses_gap) in the relevant `docs/papers/{slug}.md` card and `docs/gaps.md`.
 
 ---
 
@@ -253,7 +253,7 @@ task(subagent_type="scholar", background=true):
    4. Is the contribution type classification correct?
 
    Return: per-claim novelty verdict (NOVEL / PARTIAL / SCOOPED) + corrections.
-   For important papers: call research_wiki(action='ingest_paper', ...) + build Paper Card.
+   For important papers: ingest into Scholens + build a Paper Card in docs/papers/.
    For minor papers: return title/arxiv/venue as text."
 ```
 
@@ -294,7 +294,7 @@ Do NOT run a second full review round. The goal is to converge, not iterate endl
 
 ---
 
-## Step 5: Build Grounded StorySpine and Wiki Writeback
+## Step 5: Build Grounded StorySpine and Literature Writeback
 
 ### 5.1 Update StorySpine
 
@@ -321,11 +321,12 @@ research_idea(action="update", id="idea_XXX", status="grounding",
   notes="## Contribution Statement\n[statement]\n\n### Positioning\n[table]\n\n### Grounded StorySpine\n[yaml from 5.1]")
 ```
 
-### 5.3 Record wiki relationships
+### 5.3 Record literature relationships
 
 ```
-research_wiki(action="link", from="idea_XXX", to="<slug>", edge_type="extends|contradicts", evidence="...")
-research_wiki(action="link", from="idea_XXX", to="G0X", edge_type="addresses_gap", evidence="...")
+Append to the idea notes / `docs/papers/<slug>.md` card:
+  - relationship: extends|contradicts — <evidence>
+  - addresses gap G0X from docs/gaps.md — <evidence>
 ```
 
 ### 5.4 Record milestone
@@ -369,7 +370,7 @@ When a human checkpoint is triggered, the system auto-generates a checkpoint bri
 ```
 research_state(action="brief",
   context_refresh={
-    used_wiki_refs: ["paper_slug_1", ...],
+    used_wiki_refs: ["<scholens_document_id_1>", ...],  // legacy field name
     phase_run: "novelty-ground",
     key_decisions: ["selected grounded angle", ...],
     checked_skill_rules: [
@@ -406,8 +407,8 @@ research_state(action="advance", target_phase="design",
 ### Rollback Cleanup
 
 When rolling back from ground to explore:
-- Wiki edges created for the failed grounded idea should be noted but NOT deleted (they document the exploration path)
-- Use `research_wiki(action="update_entry", id="...", notes="Grounding failed — contribution collapsed. Retained for reference.")` to mark
+- Relationship notes / paper cards created for the failed grounded idea should be kept (they document the exploration path)
+- Append a dated note to the idea .md: "Grounding failed — contribution collapsed. Retained for reference." and keep the paper card in docs/papers/ as a negative result.
 - Do NOT delete story spine files — they are valuable exploration artifacts
 
 ---

@@ -28,7 +28,7 @@
 
 ### Related Work(0.75-1 页)
 - 按方法类型分组,每个工作 1-2 句:"他们做什么 → 怎么不同"。
-- 必须覆盖最近 1-2 年的顶会工作——用 `research_wiki(query)` 查,漏引 = novelty 异议实锤。
+- 必须覆盖最近 1-2 年的顶会工作——用 `mcp__scholens__search_scholens_knowledge` 在绑定 project 内查,漏引 = novelty 异议实锤。
 - 会议的 related work 常被审稿人用来找"你没引的 closest work",Reviewer-Audit 的 novelty 响应要在这里正面处理。
 
 ### Method(1.5-2 页)

@@ -78,13 +78,14 @@ When re-entering this skill (new session or after context compaction):
 
 1. **Load state** — `research_state(action="overview")` → get current phase, focus refs, active run
 2. **Read phase run** — `research_state(action="read")` → inner loop state, attempts, stagnation
-3. **Check wiki** — `research_wiki(action="query", query="submission and review status")` → relevant knowledge
+3. **Review Scholens literature** — query the bound project: `mcp__scholens__search_scholens_knowledge(query="submission and review status", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`, then read `docs/gaps.md` and `docs/surveys/*.md`.
+
 4. **Review journal** — `research_journal(action="read", last=10)` → recent decisions and rationale
 5. **Resume or pivot** — If `inner_loop.state === "evaluate"`, review progress metric and decide; if `"decide"`, check stagnation and choose iterate/pivot/promote
 
 After refresh, write context recovery to the phase run:
 ```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","wiki","journal"], checked_skill_rules: true})
+research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","scholens","journal"], checked_skill_rules: true})
 ```
 
 ---

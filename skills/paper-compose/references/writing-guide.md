@@ -77,7 +77,7 @@ Flow: Identify gap → state theorem → prove → show practical implications
 - Organize by approach type, not chronologically
 - Per work: what they do → their result → how we differ
 - Be specific: "Prior A assumes [X], limiting [Y]"
-- Include last-6-months work. Use `research_wiki(query)` data.
+- Include last-6-months work. Use `mcp__scholens__search_scholens_knowledge` data from the bound project.
 
 ### Method (1.5-2 pages)
 - Intuition BEFORE formalism. Every equation in words first.

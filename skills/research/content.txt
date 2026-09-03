@@ -10,7 +10,7 @@
 4. **Do NOT use `note_write` for research content** — use research_* tools.
 5. **Do NOT directly edit `.research/state.yaml`** — always use `research_state` actions to modify state.
 6. **Follow AGENTS.md** at project root — it contains code discipline, tool usage rules, and directory structure. If you don't follow it, stop and re-read it.
-7. **Use skills and tools aggressively** — load phase skills, record to timeline, ingest papers to wiki, track experiments. If you are working without calling research tools, STOP.
+7. **Use skills and tools aggressively** — load phase skills, record to timeline, ingest papers into the Scholens project, track experiments. If you are working without calling research tools, STOP.
 8. **Every session ends with** `research_state(action="brief")` to update AGENTS.md dynamic state.
 
 ---
@@ -61,13 +61,14 @@ When re-entering this skill (new session or after context compaction):
 
 1. **Load state** — `research_state(action="overview")` → get current phase, focus refs, active run
 2. **Read phase run** — `research_state(action="read")` → inner loop state, attempts, stagnation
-3. **Check wiki** — `research_wiki(action="query", query="project phase and routing")` → relevant knowledge
+3. **Review Scholens literature** — query the bound project: `mcp__scholens__search_scholens_knowledge(query="project phase and routing", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`, then read `docs/gaps.md` and `docs/surveys/*.md`.
+
 4. **Review journal** — `research_journal(action="read", last=10)` → recent decisions and rationale
 5. **Resume or pivot** — If `inner_loop.state === "evaluate"`, review progress metric and decide; if `"decide"`, check stagnation and choose iterate/pivot/promote
 
 After refresh, write context recovery to the phase run:
 ```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","wiki","journal"], checked_skill_rules: true})
+research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","scholens","journal"], checked_skill_rules: true})
 ```
 
 ---

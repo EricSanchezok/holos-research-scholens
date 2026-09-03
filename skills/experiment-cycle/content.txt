@@ -12,7 +12,7 @@
 6. **Long-running tasks use nohup + agenda_watch** — NEVER bash-wait. Logs go to `logs/`.
 7. **Gate 1 (Code Gate)**: After writing/modifying experiment code, dispatch `inspector` subagent to audit code quality BEFORE git commit. Fix all issues and repeat until clean.
 8. **Record results immediately** — when an experiment completes, call `research_experiment(complete)` with metrics.
-9. **Ingest knowledge** — relevant papers, insights, and decisions → `research_wiki` and `research_timeline`.
+9. **Ingest knowledge** — relevant papers → the bound Scholens project (`mcp__scholens__ingest_paper`); insights and decisions → `research_timeline`.
 10. **Gate 2 (Design Gate)**: Declare red-lines at registration. Dispatch `auditor` subagent before registration AND after completion to verify R1-R7. Experiment cannot complete until all red-lines pass.
 11. **Evidence authenticity**: Every experiment must declare its authenticity level (prototype/pilot/evidence). Prototypes and pilots cannot support claims. Only evidence-grade experiments can support claims. Prototypes can be marked complete for reference but carry no evidentiary weight.
 12. **NO MID-BATCH PIVOT**: When an experiment batch is running, you will inevitably discover new ideas, alternative approaches, or interesting side results. **Do NOT act on them immediately.** Instead: (a) Record the idea as a journal note via `research_journal(action="append", kind="opportunity_spotted", note="...")` — this preserves it without derailing. (b) Finish ALL registered experiments in the current batch first (complete or fail each one). (c) Only AFTER the batch is fully resolved, review accumulated opportunity notes and decide whether to iterate within experiment phase or formally redirect to an earlier phase (design/ground/explore) via `research_state(action="redirect")`. Mid-batch pivots are the #1 cause of direction drift and unfinished experiments.
@@ -28,7 +28,7 @@
 - [ ] RQG evaluated before promote to compose
 - [ ] DiagnosisReport completed with evidence for each level
 - [ ] At least min_seeds or explicit justification
-- [ ] Record used_wiki_refs in phase_run.context_refresh
+- [ ] Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 
 ### Forbidden
 - [ ] Do not pivot to design without L1-L6 completion
@@ -126,15 +126,15 @@ Before beginning any work in this phase:
    - If experiments already exist (from prior cycle or rollback), assess status
    - Do NOT re-register existing experiments
 
-4. **Load wiki context**:
+4. **Load Scholens literature context**:
    ```
-   research_wiki(action="query")
+   Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
    ```
-   - Read relevant `papers/{slug}.md` for benchmark/evaluation references
-   - Read wiki edges for method dependencies
+   - Read relevant `docs/papers/{slug}.md` knowledge cards + `docs/surveys/*.md` for benchmark/evaluation references
+   - Note dependencies recorded in the cards, surveys, and `docs/gaps.md`
 
-5. **Record wiki refs**:
-   - Record all `used_wiki_refs` in `phase_run.context_refresh`
+5. **Record literature refs**:
+   - Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 
 6. **Check skill checklist rules**:
    - Review Must/Forbidden/Checklists below
@@ -146,7 +146,7 @@ Before beginning any work in this phase:
 
 After refresh, write context recovery to the phase run:
 ```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","plan","experiments","wiki"], checked_skill_rules: true})
+research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","plan","experiments","scholens"], checked_skill_rules: true})
 ```
 
 ---
@@ -912,7 +912,7 @@ When a human checkpoint is triggered, the system auto-generates a checkpoint bri
 ```
 research_state(action="brief",
   context_refresh={
-    used_wiki_refs: [...],
+    used_wiki_refs: ["<scholens_document_id>", ...],  // legacy field name
     phase_run: "experiment-cycle",
     key_decisions: ["sufficient set complete", "RQG passed", "paper ambition: strong|moderate|weak"],
     checked_skill_rules: [

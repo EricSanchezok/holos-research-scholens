@@ -36,10 +36,11 @@ task(subagent_type="scholar", background=true,
      (Missing these is a red flag even if they are not the strongest.)
 
    For important papers (core relevance):
-   1. Call research_wiki(action='ingest_paper', title='...', authors=[...],
-      year=..., venue='...', arxiv='...', thesis='...', method='...',
-      key_results='...', limitations='...', project_relevance='...')
-   2. Download PDF via arxiv_download to .research/literature/papers/{arxiv_id}.pdf
+   1. Ingest the paper into the bound Scholens project via
+      mcp__scholens__ingest_paper(source={kind: 'arxiv', arxiv_id: '...'}, project_id='<from docs/scholens-project.md>')
+      (or doi/url).
+   2. Fetch the full text with mcp__scholens__get_paper_content / get_paper_download_url when needed
+      (never store PDFs under .research/).
 
    For minor papers: return title/arxiv/venue as text; main agent decides whether to ingest.")
 ```

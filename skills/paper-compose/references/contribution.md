@@ -41,7 +41,7 @@ WHY 这是硬门禁:生成论文最常见的失败模式是"每句话都流畅,�
 | Field problem | 领域普遍关心的问题。为什么这个领域存在。 |
 | Specific gap | 这篇论文填补的精确缺失能力/知识。不是"X 研究不足"——点名确切空洞。 |
 | Concrete challenge | 为什么这个空洞难填(解释它至今仍开放的技术/实证障碍)。 |
-| Why prior work leaves it unresolved | 点名最近的 prior approaches,以及每个为什么不能解决这个空洞。对应 wiki edges。 |
+| Why prior work leaves it unresolved | 点名最近的 prior approaches,以及每个为什么不能解决这个空洞。对应 docs/papers/ 卡片与 docs/gaps.md 中记录的关系。 |
 
 ## How This Paper Responds
 

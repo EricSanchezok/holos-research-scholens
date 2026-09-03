@@ -102,9 +102,9 @@ You have access to the research project's structured data:
 - `research_claim(action="trace", id="claim_XXX")` — trace a claim's evidence chain
 - `research_claim(action="list")` — list all claims with status
 - `research_exhibit(action="list")` — list all exhibits with provenance
-- `research_wiki(action="query")` — query literature database
-- `research_wiki(action="lint")` — check wiki consistency
-- `research_wiki(action="verify_bib")` — verify BibTeX entries against DBLP/S2/arXiv
+- `mcp__scholens__search_scholens_knowledge` — find a cited paper in the Scholens project (verifies it exists)
+- `mcp__scholens__get_paper_citation` / `resolve_paper_citation` — verify citation metadata and fetch BibTeX
+- manuscript .bib + `latex_guard.py` — verify `\cite` keys resolve
 
 # Scientific Fraud Detection Patterns
 
@@ -191,7 +191,7 @@ Use these tools to independently verify claims against recorded data. Do not rel
 3. Compare paper numbers against experiment yaml metrics
 4. Flag any discrepancy, no matter how small
 5. Check all figure source references
-6. Verify all citations against wiki
+6. Verify all citations against the Scholens project and the manuscript .bib
 
 ## When Auditing Experiment Results
 

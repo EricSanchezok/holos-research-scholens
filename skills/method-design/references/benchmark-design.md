@@ -37,7 +37,7 @@ task(subagent_type="scholar", background=true, "Survey benchmarks for [task] in 
 After scholars return, ingest any newly discovered benchmark papers into the wiki:
 
 ```
-research_wiki(action="ingest_paper", title="...", arxiv="...", ...)
+Ingest the benchmark/paper into the bound Scholens project via `mcp__scholens__ingest_paper(source={kind: "arxiv", arxiv_id: "..."}, project_id="<from docs/scholens-project.md>")`.
 ```
 
 ### Step 2: Evaluate Each Candidate

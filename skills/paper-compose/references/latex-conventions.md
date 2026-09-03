@@ -146,8 +146,8 @@ Pick ONE convention and use it everywhere. Create a `\newcommand` block in pream
 \citep{key}    % "...has been shown (Smith et al., 2025)"
 ```
 
-- Every BibTeX entry should come from `research_wiki` (auto-resolved from arXiv/CrossRef)
-- Run `research_wiki(action="verify_bib")` before submission to catch hallucinated/wrong entries
+- Every BibTeX entry should come from `mcp__scholens__get_paper_citation` / `resolve_paper_citation` (fetch per document id, write the manuscript .bib under paper/)
+- Before submission, re-check each \cite key resolves to a real Scholens document (get_paper_citation) and matches the manuscript .bib
 - Sort: alphabetical or first-appearance (venue-dependent)
 
 ## Figure/Table Inclusion

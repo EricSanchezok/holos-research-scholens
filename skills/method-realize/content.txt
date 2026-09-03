@@ -55,15 +55,15 @@ Before beginning any work in this phase:
    - Read `positioning/idea_*.story.yaml` for grounded StorySpine
    - Read `positioning/story_spine_*.yaml` for StorySpine (grounded_angle provides the paper path direction)
 
-3. **Load wiki context**:
+3. **Load Scholens literature context**:
    ```
-   research_wiki(action="query")
+   Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
    ```
-   - Read relevant `papers/{slug}.md` for implementation references
-   - Read wiki edges for method dependencies
+   - Read relevant `docs/papers/{slug}.md` knowledge cards + `docs/surveys/*.md`
+   - Note dependencies recorded in the cards, surveys, and `docs/gaps.md`
 
-4. **Record wiki refs**:
-   - Record all `used_wiki_refs` in `phase_run.context_refresh`
+4. **Record literature refs**:
+   - Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 
 5. **Check skill checklist rules**:
    - Review Must/Forbidden/Checklists below
@@ -75,7 +75,7 @@ Before beginning any work in this phase:
 
 After refresh, write context recovery to the phase run:
 ```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","plan","wiki"], checked_skill_rules: true})
+research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","plan","scholens"], checked_skill_rules: true})
 ```
 
 ---
@@ -265,7 +265,7 @@ Once approved:
 ```
 research_state(action="brief",
   context_refresh={
-    used_wiki_refs: [...],
+    used_wiki_refs: ["<scholens_document_id>", ...],  // legacy field name
     phase_run: "method-realize",
     key_decisions: ["code artifact approved", "sanity contract passed"],
     checked_skill_rules: [

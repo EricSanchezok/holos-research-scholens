@@ -27,7 +27,7 @@
 - [ ] sufficient_set aligns with expected claims
 - [ ] Design focuses on algorithm/mechanism, NOT Docker/training scripts/file structure
 - [ ] Experiment Matrix specifies all experiment groups with hyperparameters, seed strategy, and per-group compute
-- [ ] Record used_wiki_refs in phase_run.context_refresh
+- [ ] Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 
 ### Forbidden
 - [ ] Do not include Docker images or training script file structure in design (but DO specify key hyperparameters and experiment configurations in the Experiment Matrix)
@@ -75,15 +75,15 @@ Before beginning any work in this phase:
    - Read `positioning/story_spine_*.yaml` for StorySpine (grounded_angle provides the paper path direction)
    - Check for existing plans via `research_plan(action="list")`
 
-3. **Load wiki context**:
+3. **Load Scholens literature context**:
    ```
-   research_wiki(action="query")
+   Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
    ```
-   - Read relevant `papers/{slug}.md` — Method, Assumptions, Reusable Ingredients, Limitations
-   - Read wiki edges for extends/contradicts relationships
+   - Read relevant `docs/papers/{slug}.md` knowledge cards — Method, Assumptions, Reusable Ingredients, Limitations
+   - Review `docs/gaps.md` and `docs/surveys/*.md` for extends/contradicts relationships
 
-4. **Record wiki refs**:
-   - Record all `used_wiki_refs` in `phase_run.context_refresh`
+4. **Record literature refs**:
+   - Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 
 5. **Check skill checklist rules**:
    - Review Must/Forbidden/Checklists below
@@ -95,7 +95,7 @@ Before beginning any work in this phase:
 
 After refresh, write context recovery to the phase run:
 ```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","plan","wiki"], checked_skill_rules: true})
+research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","plan","scholens"], checked_skill_rules: true})
 ```
 
 ---
@@ -115,7 +115,7 @@ Create this DAG at skill entry. The five experiment design dimensions run in par
 
 ```
 dagwrite({ nodes: [
-  { id: "load",          content: "Load idea, wiki, assets, anchor",              status: "pending", deps: [] },
+  { id: "load",          content: "Load idea, literature, assets, anchor",        status: "pending", deps: [] },
   { id: "gap",           content: "Technical gap analysis and route selection",    status: "pending", deps: ["load"] },
   { id: "method",        content: "Design method: thesis, mechanism, complexity budget, system graph, training recipe, inference path, failure modes, novelty argument", status: "pending", deps: ["gap"] },
   { id: "benchmark",     content: "Survey and select benchmarks. Load references/benchmark-design.md. Dispatch scholar subagents.", status: "pending", deps: ["gap"], assign: "scholar" },
@@ -129,7 +129,7 @@ dagwrite({ nodes: [
   { id: "propose",       content: "Write and register the initial plan proposal",  status: "pending", deps: ["authenticity"] },
   { id: "review",        content: "Adversarial method review via critic",          status: "pending", deps: ["propose"], assign: "critic" },
   { id: "revise",        content: "Parse feedback, revise proposal, re-review",   status: "pending", deps: ["review"] },
-  { id: "writeback",     content: "Wiki writeback: link plan to papers and gaps", status: "pending", deps: ["revise"] },
+  { id: "writeback",     content: "Record plan↔literature links in docs/papers + docs/gaps.md and journal", status: "pending", deps: ["revise"] },
   { id: "present",       content: "Present final proposal to user for approval",  status: "pending", deps: ["writeback"] },
   { id: "activate",      content: "Approve, activate plan, advance to experiment",status: "pending", deps: ["present"] }
 ]})
@@ -155,10 +155,10 @@ Identify the selected idea from `focus.refs.idea`. Read its `.md` — especially
 ### 0.2 Load literature context
 
 ```
-research_wiki(action="query")
+Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
 ```
 
-Read relevant `papers/{slug}.md` — focus on Method, Assumptions, Reusable Ingredients, and Limitations. Read wiki edges to understand what extends/contradicts the key prior work.
+Read relevant `docs/papers/{slug}.md` knowledge cards — focus on Method, Assumptions, Reusable Ingredients, and Limitations. Review `docs/gaps.md` and `docs/surveys/*.md` to understand what extends/contradicts the key prior work.
 
 ### 0.3 Check for existing plans
 
@@ -186,7 +186,7 @@ dagpatch({ nodes: [{ id: "load", status: "completed" }] })
 
 ### 1.1 Scan grounding material
 
-From the wiki papers and idea positioning, extract:
+From the Scholens project search results, paper cards, and idea positioning, extract:
 
 - What mechanism do current methods use?
 - Where exactly do they fail for this problem?
@@ -204,8 +204,8 @@ task(subagent_type="scholar", background=true):
    Use mcp__scholight__search_papers (strength='thorough', limit=10, date_from/date_to
    for the window). Focus on: mechanism, training setup, failure modes.
   For important papers (core relevance):
-  1. Call research_wiki(action="ingest_paper", title="...", authors=[...], year=..., venue="...", arxiv="...", thesis="...", method="...", key_results="...", limitations="...", project_relevance="...") to register with content
-  2. Download PDF via arxiv_download to .research/literature/papers/{arxiv_id}.pdf
+  1. Ingest into the bound Scholens project: `mcp__scholens__ingest_paper(source={kind: "arxiv", arxiv_id: "..."}, project_id="<from docs/scholens-project.md>")` (or doi/url)
+  2. If you need the full text, use `mcp__scholens__get_paper_content` / `get_paper_download_url` on the resulting document (never store PDFs locally).
   For minor papers: return title/arxiv/venue as text, main agent decides whether to ingest.
     Return: title, one-line method, key limitation, date."
 
@@ -217,7 +217,7 @@ task(subagent_type="scout", background=true):
 
 If scholar found new papers it didn't ingest, supplement:
 ```
-research_wiki(action="ingest_paper", ...)
+Ingest the paper into the bound Scholens project via `mcp__scholens__ingest_paper`.
 ```
 
 ### 1.3 Make the gap operational
@@ -725,18 +725,18 @@ dagpatch({ nodes: [{ id: "revise", status: "completed" }] })
 
 ---
 
-## Step 7: Wiki Writeback
+## Step 7: Literature Writeback
 
 After the method is refined:
 
 ```
-research_wiki(action="link", from="plan_XXX", to="<slug>", edge_type="extends",
+In the plan .md notes record: plan_XXX extends <slug> —
   evidence="<how our method builds on this paper>")
 
-research_wiki(action="link", from="plan_XXX", to="<slug>", edge_type="contradicts",
+In the plan .md notes record: plan_XXX contradicts <slug> —
   evidence="<which assumption we violate>")
 
-research_wiki(action="link", from="plan_XXX", to="G0X", edge_type="addresses_gap",
+In the plan .md notes record: plan_XXX addresses gap G0X (docs/gaps.md) —
   evidence="<how our method addresses this gap>")
 ```
 
@@ -817,7 +817,7 @@ This auto-supersedes any previously active plan.
 ```
 research_state(action="brief",
   context_refresh={
-    used_wiki_refs: ["paper_slug_1", "paper_slug_2", ...],
+    used_wiki_refs: ["<scholens_document_id_1>", ...],  // legacy field name
     phase_run: "method-design",
     key_decisions: ["method approved", "score N/10 after M rounds"],
     checked_skill_rules: [

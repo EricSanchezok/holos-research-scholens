@@ -27,7 +27,7 @@ By the end of this skill:
 
 - New or derived ideas exist in `.research/ideas/` addressing the feedback
 - Previously rejected/parked ideas are marked accordingly
-- The wiki survey is incrementally updated with any new papers found
+- The `docs/surveys/` survey is incrementally updated with any new papers found
 - Timeline records the refinement round
 - The idea pool is ready for another round of refinement, or for selection and advance to `ground`
 
@@ -77,13 +77,14 @@ When re-entering this skill (new session or after context compaction):
 
 1. **Load state** — `research_state(action="overview")` → get current phase, focus refs, active run
 2. **Read phase run** — `research_state(action="read")` → inner loop state, attempts, stagnation
-3. **Check wiki** — `research_wiki(action="query", query="idea refinement")` → relevant knowledge
+3. **Review Scholens literature** — query the bound project: `mcp__scholens__search_scholens_knowledge(query="idea refinement", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`, then read `docs/gaps.md` and `docs/surveys/*.md`.
+
 4. **Review journal** — `research_journal(action="read", last=10)` → recent decisions and rationale
 5. **Resume or pivot** — If `inner_loop.state === "evaluate"`, review progress metric and decide; if `"decide"`, check stagnation and choose iterate/pivot/promote
 
 After refresh, write context recovery to the phase run:
 ```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","wiki","journal"], checked_skill_rules: true})
+research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","scholens","journal"], checked_skill_rules: true})
 ```
 
 ---
@@ -107,10 +108,10 @@ Extract:
 ### 0.2 Read the survey
 
 ```
-research_wiki(action="query")
+Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
 ```
 
-Read `.research/literature/LIT_CONTEXT.md` for the compressed landscape. This is the baseline — do NOT re-survey from scratch.
+Read `docs/surveys/survey.md` for the compressed landscape (plus `docs/gaps.md` and the Scholens project search). This is the baseline — do NOT re-survey from scratch.
 
 ### 0.3 Identify the feedback
 
@@ -189,27 +190,27 @@ task(subagent_type="scholar", background=true, dag_node_id="research"):
    for the window). Focus on: mechanisms that address [specific bottleneck], not
    general surveys.
    For core-relevance papers:
-   1. Call research_wiki(action='ingest_paper', title='...', authors=[...], year=..., venue='...', arxiv='...', thesis='...', method='...', key_results='...', limitations='...', project_relevance='...', relevance='core')
-   2. Download PDF via arxiv_download to .research/literature/papers/{arxiv_id}.pdf
+   1. Ingest into the bound Scholens project: `mcp__scholens__ingest_paper(source={kind: 'arxiv', arxiv_id: '...'}, project_id='<from docs/scholens-project.md>')` (or doi/url)
+   2. If you need the full text, use `mcp__scholens__get_paper_content` / `get_paper_download_url` (never store PDFs locally).
    For peripheral papers: return title/arxiv/one-line-method as text.
    Return: 3-5 most relevant papers with their key mechanisms and limitations."
 ```
 
 If multiple gap directions exist, dispatch multiple scholars in parallel.
 
-### 2.2 Supplement wiki
+### 2.2 Supplement the Scholens project
 
 For any papers the scholars found but didn't ingest:
 
 ```
-research_wiki(action="ingest_paper", ...)
-research_wiki(action="link", from="idea_XXX", to="<slug>", edge_type="inspired_by", ...)
+Ingest the paper into the bound Scholens project via `mcp__scholens__ingest_paper`.
+Record in the idea .md notes: idea_XXX is inspired_by <slug> — <evidence>
 ```
 
 ### 2.3 Update gap map if new gaps discovered
 
 ```
-research_wiki(action="register_gap", description="...", source_paper="<slug>")
+Record the gap in `docs/gaps.md`: description + source paper (Scholens document id / title).
 ```
 
 ---

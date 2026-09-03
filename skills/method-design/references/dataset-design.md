@@ -427,8 +427,8 @@ For the plan `.md`, document every dataset in this format. One section per datas
 
 ### Tool Interactions
 
-- Use `research_wiki(action="ingest_paper")` to register dataset papers found during source identification.
-- Use `research_wiki(action="link")` to connect dataset papers to the plan.
+- Ingest dataset papers found during source identification into the bound Scholens project (`mcp__scholens__ingest_paper`).
+- Record the dataset-paper → plan connection in the plan notes and `docs/papers/` card.
 - Document data requirements in the plan `.md` under the "Training Plan" and "Data Requirements" sections.
 - The experiment phase reads the plan `.md` to find data paths and preprocessing instructions.
 - If data collection requires compute (scraping, synthetic generation), register it as an experiment with `group="sanity"` and `backend="local"` or `backend="api"`.

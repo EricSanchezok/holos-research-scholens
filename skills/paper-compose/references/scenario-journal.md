@@ -26,7 +26,7 @@
 
 ### Related Work
 - 期刊允许 1-2 页。按方法类型分组,每组"他们做了什么 → 结果 → 我们怎么不同"。
-- 覆盖最近 12 个月的工作(不只是 6 个月)。用 `research_wiki(query)`。
+- 覆盖最近 12 个月的工作(不只是 6 个月)。用 `mcp__scholens__search_scholens_knowledge` 在绑定 project 内检索。
 - 明确标注"本工作区别于 X 的地方"——这是 novelty objection 的正面战场。
 
 ### Method
@@ -51,7 +51,7 @@
 | 图表数量上限 | 有些期刊限主文图表数,多的进 supplementary |
 | Ethics / Data availability 声明 | 多数期刊要求;写作时预留位置 |
 | 匿名性 | 双盲期刊:无作者名、无自引暴露 |
-| 参考文献格式 | 期刊用特定 bst/样式;用 `research_wiki(verify_bib)` 校验 |
+| 参考文献格式 | 期刊用特定 bst/样式;用 `mcp__scholens__get_paper_citation`/`resolve_paper_citation` 取 BibTeX 并核对 |
 
 ## 关卡衔接
 

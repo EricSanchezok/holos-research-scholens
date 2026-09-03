@@ -24,7 +24,7 @@
 - [ ] StorySpine drives intro arc (field_assumption → pain_point → gap → insight → method → evidence → implication)
 - [ ] Overclaim check passes before paper-ready
 - [ ] Pre-writing gates pass: contribution_check.py + results_validation_check.py exit 0 before drafting
-- [ ] Record used_wiki_refs in phase_run.context_refresh
+- [ ] Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 
 ### Forbidden
 - [ ] Do not state strong claims without RQG pass
@@ -59,7 +59,7 @@ Create this DAG at skill entry. Exhibit production and structure can start in pa
 
 ```
 dagwrite({ nodes: [
-  { id: "load",        content: "Load claims, experiments, wiki context",            status: "pending", deps: [] },
+  { id: "load",        content: "Load claims, experiments, Scholens literature",     status: "pending", deps: [] },
   { id: "exh-plan",    content: "Map claims to exhibits, plan all figures/tables",   status: "pending", deps: ["load"] },
   { id: "gates",       content: "Pre-writing gates: contribution, results-validation, reviewer-audit, blueprints", status: "pending", deps: ["load"] },
   { id: "exh-produce", content: "Generate, render, verify, approve exhibits",        status: "pending", deps: ["exh-plan"] },
@@ -113,15 +113,15 @@ Before beginning any work in this phase:
    - Read active plan's `.md` for method design
    - Read idea's `.md` for contribution statement and positioning matrix
 
-3. **Load wiki context**:
+3. **Load Scholens literature context**:
    ```
-   research_wiki(action="query")
+   Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
    ```
-   - Read relevant `papers/{slug}.md` for related work references
-   - Read wiki edges for literature relationships
+   - Read relevant `docs/papers/{slug}.md` knowledge cards + `docs/surveys/*.md` for related work
+   - Note literature relationships recorded in the cards and `docs/gaps.md`
 
-4. **Record wiki refs**:
-   - Record all `used_wiki_refs` in `phase_run.context_refresh`
+4. **Record literature refs**:
+   - Record Scholens document ids in `phase_run.context_refresh.used_wiki_refs` (legacy field name)
 
 5. **Check skill checklist rules**:
    - Review Must/Forbidden/Checklists below
@@ -133,7 +133,7 @@ Before beginning any work in this phase:
 
 After refresh, write context recovery to the phase run:
 ```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","claims","experiments","plan","wiki"], checked_skill_rules: true})
+research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","claims","experiments","plan","scholens"], checked_skill_rules: true})
 ```
 
 ---
@@ -144,7 +144,7 @@ research_state(action="brief", context_refresh={trigger: "session_resume", loade
 research_state(action="read")
 research_claim(action="list")         // all final claims
 research_experiment(action="list")    // all experiments for result data
-research_wiki(action="query")         // literature landscape for related work
+Query the Scholens project for recent papers and annotations: `mcp__scholens__search_scholens_knowledge(query="<topic>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`
 ```
 
 Read the active plan's `.md` for the method design. Read the idea's `.md` for the contribution statement and positioning matrix.
@@ -385,7 +385,7 @@ Write in this order for maximum coherence:
 1. **Method** — write first because it anchors the technical content
 2. **Results** — write second because it directly renders the claims
 3. **Introduction** — write third because now you know what the paper delivers
-4. **Related Work** — load `lit-knowledge` skill for wiki data
+4. **Related Work** — load `lit-knowledge` skill for the Scholens literature workflow
 5. **Discussion** — write honestly about limitations, broader perspective, and future work
 6. **Abstract** — write last because it must accurately summarize everything
 7. **Conclusion** — brief, forward-looking, no overclaim
@@ -602,7 +602,7 @@ research_paper(action="advance", id="paper_001", target_status="ready")
 ```
 research_state(action="brief",
   context_refresh={
-    used_wiki_refs: [...],
+    used_wiki_refs: ["<scholens_document_id>", ...],  // legacy field name
     phase_run: "paper-compose",
     key_decisions: ["paper marked ready", "submission_readiness confirmed"],
     checked_skill_rules: [

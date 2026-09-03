@@ -6,8 +6,8 @@
 
 1. **ALL research files under `.research/`** — never write to project root.
 2. **Follow AGENTS.md** at project root — code discipline, tool usage, and directory structure.
-3. **Proactively use `research_wiki(ingest_paper)`** for every relevant paper found — do NOT list them in text.
-4. **Register research gaps** with `research_wiki(register_gap)` as you discover them during the survey.
+3. **Proactively ingest every relevant paper into the bound Scholens project** via `mcp__scholens__ingest_paper` (arXiv id / DOI / URL) — do NOT list them in text.
+4. **Record research gaps** in `docs/gaps.md` (plain markdown) as you discover them during the survey.
 5. **Record key insights and decisions** via `research_timeline(append_free_event)`.
 6. **End the session** with `research_state(action="brief")` to update AGENTS.md.
 
@@ -43,7 +43,7 @@ Novel ideas come from mismatches — not from "what clever thing can I add". Cap
 - [ ] Ideas are ranked by batch ranking, not manual filtering
 - [ ] User taste checkpoint before entering ground
 - [ ] Each idea starts from a concrete signal (anomaly/contradiction/missing mechanism), not from "what if we combined X and Y"
-- [ ] Survey artifacts exist under `.research/literature/survey/` (01a-01d scouts + 02_landscape) before wonder extraction
+- [ ] Survey artifacts exist under `docs/surveys/` (01a-01d scouts + 02_landscape) before wonder extraction
 
 ### Forbidden
 - [ ] Do not select a single idea too early — keep diverse candidates until user confirms
@@ -78,24 +78,24 @@ Tool contract (from the scholight MCP server):
 ### Paper full-text reading
 
 - Preferred: `mcp__scholight__extract_url(url="https://arxiv.org/html/<id>", output="main_markdown", max_chars=200000)` — structured HTML with headings and tables.
-- If the HTML version is missing/empty (<500 chars), fall back to `arxiv_download` (PDF to `.research/literature/papers/{id}.pdf`) then read the PDF.
+- If the HTML version is missing/empty (<500 chars), fall back to `arxiv_download` into a scratch path under `/tmp` (never inside `.research/`) then read the PDF, and ingest the paper into Scholens for the permanent record.
 - If both fail, build the card from the abstract and mark `evidence: abstract_only` — never fabricate body details.
 
 ### When dispatching scholar
 
 ```
 File conventions for this project:
-- Return all text findings in your response — the main agent writes them to .research/.
+- Return all text findings in your response — the main agent writes them to `docs/surveys/`.
 - For important papers (core relevance):
-  1. Call research_wiki(action="ingest_paper", title="...", authors=[...], year=..., venue="...", arxiv="...", thesis="...", method="...", key_results="...", limitations="...", project_relevance="...")
-  2. Build a Paper Card (see contract below) in .research/literature/papers/{slug}.md
+  1. Ingest into the bound Scholens project: `mcp__scholens__ingest_paper(source={kind: "arxiv", arxiv_id: "..."}, project_id="<from docs/scholens-project.md>")` (or doi/url)
+  2. Build a Paper Card (see contract below) in `docs/papers/{slug}.md`
 - For minor papers: return title/arxiv/venue as text, main agent decides whether to ingest.
 - Use mcp__scholight__search_papers for discovery; extract full text via mcp__scholight__extract_url or arxiv_download.
 ```
 
 ### Paper Card contract (for every core paper)
 
-`research_wiki(ingest_paper)` creates `papers/{slug}.md` as a template. Then APPEND/EDIT the following sections (never overwrite evidence already present — the KB is append-only across stages):
+Create `docs/papers/{slug}.md` as the Paper Card (slug = short title key). Then APPEND/EDIT the following sections (never overwrite evidence already present — cards are append-only across stages):
 
 - `## anchor_relevance` — why this paper matters to the anchor; where it sits in the field structure (`closest work` / `foundation` / `competing mechanism`).
 - `## transfer` — could this method/idea transfer to the anchor's direction? how, and what would BLOCK it? If no clear transfer, say so in one line.
@@ -106,7 +106,7 @@ Rules: ground every claim in the paper; never fabricate numbers/methods/results;
 ### When dispatching scout
 
 ```
-Return all findings as text in your response. The main agent writes the scout artifact to .research/literature/survey/.
+Return all findings as text in your response. The main agent writes the scout artifact to `docs/surveys/`.
 ```
 
 ---
@@ -127,7 +127,7 @@ dagwrite({ nodes: [
   { id: "review",     content: "Adversarial review of survivors",                status: "pending", deps: ["novelty"], assign: "critic" },
   { id: "pilot",      content: "Pilot experiments (if enabled)",                 status: "pending", deps: ["review"] },
   { id: "present",    content: "Present ranked ideas, handle user decision",     status: "pending", deps: ["pilot"] },
-  { id: "writeback",  content: "Knowledge writeback to wiki and memory",         status: "pending", deps: ["present"] }
+  { id: "writeback",  content: "Writeback surveys/gaps to docs + journal",       status: "pending", deps: ["present"] }
 ]})
 ```
 
@@ -142,13 +142,14 @@ When re-entering this skill (new session or after context compaction):
 
 1. **Load state** — `research_state(action="overview")` → get current phase, focus refs, active run
 2. **Read phase run** — `research_state(action="read")` → inner loop state, attempts, stagnation
-3. **Check wiki** — `research_wiki(action="query", query="idea exploration status")` → relevant knowledge
+3. **Review Scholens literature** — query the bound project: `mcp__scholens__search_scholens_knowledge(query="idea exploration status", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})`, then read `docs/gaps.md` and `docs/surveys/*.md`.
+
 4. **Review journal** — `research_journal(action="read", last=10)` → recent decisions and rationale
 5. **Resume or pivot** — If `inner_loop.state === "evaluate"`, review progress metric and decide; if `"decide"`, check stagnation and choose iterate/pivot/promote
 
 After refresh, write context recovery to the phase run:
 ```
-research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","wiki","journal"], checked_skill_rules: true})
+research_state(action="brief", context_refresh={trigger: "session_resume", loaded: ["state","scholens","journal"], checked_skill_rules: true})
 ```
 
 ---
@@ -163,11 +164,11 @@ research_state(action="brief", context_refresh={trigger: "session_resume", loade
 - Multiple `idea_XXX` objects registered via `research_idea`
 - Each idea has a status: `exploring` / `parked` / `rejected`
 - At least one idea is ready for user selection
-- Survey artifacts under `.research/literature/survey/` (01a-01d + 02_landscape.md)
-- `.research/literature/survey.md` contains the final synthesized survey
-- Paper Cards for core papers in `.research/literature/papers/{slug}.md`
-- Relevant papers ingested into wiki via `research_wiki(ingest_paper)`
-- Gaps registered via `research_wiki(register_gap)`
+- Survey artifacts under `docs/surveys/` (01a-01d + 02_landscape.md)
+- `docs/surveys/survey.md` contains the final synthesized survey
+- Paper Cards for core papers in `docs/papers/{slug}.md`
+- Relevant papers ingested into the Scholens project via `mcp__scholens__ingest_paper`
+- Gaps recorded in `docs/gaps.md`
 
 ---
 
@@ -201,7 +202,8 @@ research_state(action="advance", target_phase="explore",
 ### 0.4 Recover prior knowledge
 
 ```
-research_wiki(action="query", query="<research direction>", limit=5)
+Query the bound Scholens project for prior work on the direction:
+`mcp__scholens__search_scholens_knowledge(query="<research direction>", scope={kind: "project", project_id: "<from docs/scholens-project.md>"})` and read `docs/surveys/` + `docs/gaps.md`.
 ```
 
 ### 0.5 Drift check protocol
@@ -216,7 +218,7 @@ Run the four scouts **in parallel** (`task(background=true)`). Each scout writes
 
 ### Round 1: Four Parallel Scouts
 
-#### Scout A — Method Scout → `.research/literature/survey/01a_method_scout.md`
+#### Scout A — Method Scout → `docs/surveys/01a_method_scout.md`
 
 ```
 task(subagent_type="scholar", background=true):
@@ -227,11 +229,11 @@ task(subagent_type="scholar", background=true):
    job — any FRICTION visible from title/abstract: an anomaly, a reported limitation,
    a mechanism whose gain is unexplained, or a setting where it is brittle. Do NOT
    invent friction; only note what the abstract actually implies.
-   Write .research/literature/survey/01a_method_scout.md: paper list + a short
+   Write docs/surveys/01a_method_scout.md: paper list + a short
    'friction signals' subsection. Return a short handoff summary in your response."
 ```
 
-#### Scout B — Survey Scout → `.research/literature/survey/01b_survey_scout.md`
+#### Scout B — Survey Scout → `docs/surveys/01b_survey_scout.md`
 
 ```
 task(subagent_type="scholar", background=true):
@@ -240,12 +242,12 @@ task(subagent_type="scholar", background=true):
    (2024-2026 window; use date_from/date_to), 3-5 queries, strength='thorough'.
    Identify: consensus vs controversy, emerging sub-directions, and especially
    CONTRADICTIONS between different groups' findings.
-   Write .research/literature/survey/01b_survey_scout.md: each paper (arXiv id, title,
+   Write docs/surveys/01b_survey_scout.md: each paper (arXiv id, title,
    year, one-line scope), then a 'field structure' subsection and a 'contradictions'
    subsection. Return a short handoff summary."
 ```
 
-#### Scout C — Venue Scout → `.research/literature/survey/01c_venue_scout.md`
+#### Scout C — Venue Scout → `docs/surveys/01c_venue_scout.md`
 
 ```
 task(subagent_type="scholar", background=true):
@@ -253,12 +255,12 @@ task(subagent_type="scholar", background=true):
    ACL/EMNLP 2025-2026 era). Use mcp__scholight__search_papers with 3-5 queries,
    strength='thorough'. Focus on BRITTLENESS: where a method succeeds and where it
    fails, and recurring reviewer-style concerns visible in abstracts/limitations.
-   Write .research/literature/survey/01c_venue_scout.md: each paper (arXiv id, title,
+   Write docs/surveys/01c_venue_scout.md: each paper (arXiv id, title,
    venue/year if visible, the regime where it works vs where it breaks), then a
    'brittleness signals' subsection. Return a short handoff summary."
 ```
 
-#### Scout D — Industry Scout → `.research/literature/survey/01d_industry_scout.md`
+#### Scout D — Industry Scout → `docs/surveys/01d_industry_scout.md`
 
 ```
 task(subagent_type="scout", background=true):
@@ -266,19 +268,19 @@ task(subagent_type="scout", background=true):
    related to <anchor>. Use websearch/webfetch. Focus on: what practitioners are
    actually building vs what papers claim, common complaints in issues, DEPLOYMENT
    FAILURES, and real-world constraints not in papers.
-   Write .research/literature/survey/01d_industry_scout.md: each signal with source,
+   Write docs/surveys/01d_industry_scout.md: each signal with source,
    insight, relevance. Return a short handoff summary."
 ```
 
-### Round 2: Landscape Merge → `.research/literature/survey/02_landscape.md`
+### Round 2: Landscape Merge → `docs/surveys/02_landscape.md`
 
 After all four scouts return, dispatch ONE merge agent (or merge yourself):
 
 ```
 task(subagent_type="scholar", background=true):
-  "You are the LandscapeBuilder. Read .research/literature/survey/01a_method_scout.md,
+  "You are the LandscapeBuilder. Read docs/surveys/01a_method_scout.md,
    01b_survey_scout.md, 01c_venue_scout.md, 01d_industry_scout.md, and the anchor.
-   Write .research/literature/survey/02_landscape.md with exactly these sections:
+   Write docs/surveys/02_landscape.md with exactly these sections:
    - landscape_overview: the terrain in a few sentences — dominant approaches and the
      through-line around the anchor.
    - method_families: main approach families, each with 1-2 representative papers
@@ -304,10 +306,10 @@ For each paper in `core_paper_worklist`, dispatch one reader (fan-out, parallel)
 task(subagent_type="scholar", background=true):
   "You are the PaperCardWriter. Read ONE paper in full and write a compact, anchor-aware
    card for <arXiv id> (<title>). Why it matters: <why from worklist>.
-   1. If .research/literature/papers/<slug>.md already exists, EXTEND it (append-only KB).
+   1. If docs/papers/<slug>.md already exists, EXTEND it (append-only card).
    2. Read full text: mcp__scholight__extract_url('https://arxiv.org/html/<id>',
       output='main_markdown', max_chars=200000). If that fails or returns <500 chars,
-      arxiv_download to .research/literature/papers/<id>.pdf and read the PDF. If both
+      arxiv_download to a scratch path under /tmp and read the PDF. If both
       fail, proceed from the abstract and mark evidence: abstract_only.
    3. Write/append the card per the Paper Card contract: header, problem, method,
       results (with caveats), anchor_relevance, transfer, evidence.
@@ -323,9 +325,9 @@ task(subagent_type="scholar", background=true):
 
 ### Survey writeback
 
-After all rounds complete, synthesize into `.research/literature/survey.md`:
+After all rounds complete, synthesize into `docs/surveys/survey.md`:
 
-1. Write `.research/literature/survey.md` with sections:
+1. Write `docs/surveys/survey.md` with sections:
    - Landscape Overview (from 02_landscape.md)
    - Academic Methods (grouped by approach, with dates)
    - Industry Signals
@@ -335,9 +337,9 @@ After all rounds complete, synthesize into `.research/literature/survey.md`:
    - Failed Approaches (banlist for idea generation)
    - Core Papers (the worklist + card paths)
 
-2. Register gaps: `research_wiki(action="register_gap", ...)`
+2. Record gaps in `docs/gaps.md` (numbered G1.. with description, source paper, linked idea if any).
 
-3. Verify paper coverage: `research_wiki(action="stats")`
+3. Verify paper coverage: `mcp__scholens__list_project_papers(project_id="<uuid>")` vs the survey paper list.
 
 ---
 
@@ -390,7 +392,7 @@ Generate ideas by borrowing **only the core causal primitive** from another fiel
 task(subagent_type="scholar", background=true):
   "You are the TransferLens. Generate research ideas for <anchor> by borrowing the core
    causal primitive from another field.
-   1. Read .research/literature/survey/02_landscape.md and the paper cards (transfer
+   1. Read docs/surveys/02_landscape.md and the paper cards (transfer
       fields are seeds).
    2. Identify the STRUCTURE of the anchor's bottleneck: representation mismatch,
       objective mismatch, search geometry, or feedback-loop structure. Find a field
@@ -577,7 +579,7 @@ Present a structured report:
 - Paper cards built: N (with evidence levels)
 - Wonder signals identified: N (anomalies, contradictions, missing mechanisms, etc.)
 - Date range: YYYY-MM to YYYY-MM
-- Survey artifacts: `.research/literature/survey/` (01a-01d + 02_landscape.md)
+- Survey artifacts: `docs/surveys/` (01a-01d + 02_landscape.md)
 
 ### Surviving Ideas
 
@@ -636,11 +638,11 @@ Based on user response:
 
 ## Step 10: Knowledge Writeback
 
-1. **Update LIT_CONTEXT.md**: Compress survey findings into shared literature context
-2. **Verify paper coverage**: `research_wiki(action="stats")`
-3. **Record rejected ideas**: Add to banlist in LIT_CONTEXT.md
+1. **Update the survey**: keep `docs/surveys/survey.md` as the compressed shared landscape (prune stale detail, keep Failed Approaches / Banlist).
+2. **Verify paper coverage**: `mcp__scholens__list_project_papers(project_id="<uuid>")` vs the survey.
+3. **Record rejected ideas**: Add to the Failed Approaches / Banlist section of `docs/surveys/survey.md`.
 4. **Record milestone**: `research_timeline(action="append_free_event", event_type="milestone", summary="Idea exploration complete: X ideas generated, Y survived, Z selected.")`
-5. **Persist insights**: `research_wiki(action="upsert")` for transferable insights
+5. **Persist insights**: append transferable insights to the relevant `docs/surveys/*.md` survey.
 
 ---
 
