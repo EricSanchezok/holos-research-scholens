@@ -227,7 +227,7 @@ const SKILLS = [
   {
     name: "lit-knowledge",
     description:
-      "Manage the literature knowledge base: ingest papers, build relationship graphs, register research gaps, and generate compressed context views. Uses research_wiki for all operations. Maintains .research/literature/ with paper metadata, gap maps, edge relationships, and LIT_CONTEXT.md. Triggers: 'ingest paper', 'manage literature', '文献管理', '整理论文'.",
+      "Manage literature in Scholens: ingest papers into the project library, search stored papers and annotations, annotate and discuss passages. Papers live in a Scholens project (never in .research/). Write surveys under docs/surveys/ and track research gaps in docs/gaps.md. Triggers: 'ingest paper', 'manage literature', '文献管理', '整理论文'.",
     dir: "skills/lit-knowledge",
   },
   {
@@ -276,13 +276,13 @@ const skillContributions = SKILLS.map((s) =>
 );
 
 export default definePlugin({
-  id: "holos-research",
-  version: "1.1.1",
+  id: "holos-research-scholens",
+  version: "0.1.0",
   description:
-    "Structured research management — from idea discovery through paper submission, with full state machine tracking, adversarial review, and audit trail.",
-  author: "yzxoi <y@yzxoi.top> (https://github.com/yzxoi)",
-  homepage: "https://github.com/yzxoi/holos-research",
-  repository: "https://github.com/yzxoi/holos-research",
+    "Research management backed by Scholens literature — from idea discovery through paper submission, with full state machine tracking, adversarial review, and audit trail. Papers, metadata, and annotations live in a Scholens project; the research pipeline (ideas → experiments → claims → paper) is tracked locally under .research/.",
+  author: "EricSanchez <niexiaohangeric@163.com> (https://github.com/EricSanchezok)",
+  homepage: "https://github.com/EricSanchezok/holos-research-scholens",
+  repository: "https://github.com/EricSanchezok/holos-research-scholens",
   license: "MIT",
   capabilities: [capability("workspace.read"), capability("workspace.write")],
   activate: async () => {

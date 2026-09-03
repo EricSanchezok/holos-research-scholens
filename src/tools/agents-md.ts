@@ -38,7 +38,7 @@ Every time you start working (including after context compaction):
 
 - \`research_state\` — read/update project state on EVERY session
 - \`research_experiment\` — track ALL experiment lifecycle changes (register → schedule → start → complete/fail)
-- \`research_wiki\` — ingest papers, register gaps, link relationships whenever you discover relevant work
+- Use the Scholens MCP to manage literature — papers/metadata/annotations live in a Scholens project (see lit-knowledge skill); write surveys to \`docs/surveys/\` and gaps to \`docs/gaps.md\`
 - \`research_timeline\` — record insights, milestones, decisions
 - \`research_claim\` — extract claims from completed experiments
 - \`skill(name="...")\` — load the phase-appropriate skill for structured guidance
@@ -52,7 +52,7 @@ Every time you start working (including after context compaction):
 | Experiment status changes | \`research_experiment(schedule/start/complete/fail)\` immediately |
 | Experiment completes | Analyze results, compare with baseline, write experiment .md summary |
 | ≥3 experiments analyzed | Consider extracting claims: \`research_claim(create)\` |
-| Discover relevant paper | \`research_wiki(ingest_paper)\` + fill the .md knowledge page |
+| Discover relevant paper | Ingest into the Scholens project via \`mcp__scholens__ingest_paper\`, note it in the survey under \`docs/surveys/\` |
 | Important decision made | \`research_timeline(append_free_event, event_type="decision")\` |
 | Key insight discovered | \`research_timeline(append_free_event, event_type="insight")\` |
 | Session ending | \`research_state(action="brief")\` to update this file |
@@ -162,7 +162,7 @@ If any answer is no, register the experiment as \`prototype\` or \`pilot\`. Only
 - **Record failures** — failed experiments are valuable; always log failure_reason and lessons learned
 - **Check anchor drift regularly** — is current work still aligned with the research direction?
 - **Use subagents for review**: \`critic\` for adversarial evaluation, \`methodologist\` for design feedback
-- **Proactively ingest knowledge to wiki** — don't ask "should I store this?", just do it
+- **Proactively ingest relevant papers into the Scholens project** — don't ask "should I store this?", just do it
 - **Periodically analyze timeline** — look for patterns, stalled items, neglected directions
 
 ### Complete Experiment Design (Method Is Only Half the Work)
